@@ -178,3 +178,7 @@ tiles:
   - 3way_left/E
   - straight/E
   - curve_left/E
+
+
+# Fixed initial pose
+start_pose: [[-1.7, 0, -0.75], 0]
