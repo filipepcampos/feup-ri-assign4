@@ -24,11 +24,21 @@ parser.add_argument("--env-name", default=None)
 parser.add_argument("--map-name", default="udem1")
 parser.add_argument("--distortion", default=False, action="store_true")
 parser.add_argument("--camera_rand", default=False, action="store_true")
-parser.add_argument("--draw-curve", action="store_true", help="draw the lane following curve")
-parser.add_argument("--draw-bbox", action="store_true", help="draw collision detection bounding boxes")
-parser.add_argument("--domain-rand", action="store_true", help="enable domain randomization")
-parser.add_argument("--dynamics_rand", action="store_true", help="enable dynamics randomization")
-parser.add_argument("--frame-skip", default=1, type=int, help="number of frames to skip")
+parser.add_argument(
+    "--draw-curve", action="store_true", help="draw the lane following curve"
+)
+parser.add_argument(
+    "--draw-bbox", action="store_true", help="draw collision detection bounding boxes"
+)
+parser.add_argument(
+    "--domain-rand", action="store_true", help="enable domain randomization"
+)
+parser.add_argument(
+    "--dynamics_rand", action="store_true", help="enable dynamics randomization"
+)
+parser.add_argument(
+    "--frame-skip", default=1, type=int, help="number of frames to skip"
+)
 parser.add_argument("--seed", default=1, type=int, help="seed")
 args = parser.parse_args()
 
@@ -48,39 +58,82 @@ if args.env_name and args.env_name.find("Duckietown") != -1:
 else:
     env = gym.make(args.env_name)
 
-# for da função ("globais")
-dictionary = cv.aruco.getPredefinedDictionary(cv.aruco.DICT_4X4_250) # isto passaria para outro sítio 
-parameters =  cv.aruco.DetectorParameters() # isto também 
-parameters.minCornerDistanceRate = 0.01
-parameters.minDistanceToBorder = 1
-parameters.minMarkerPerimeterRate = 0.01
-detector = cv.aruco.ArucoDetector(dictionary, parameters) # isto também
 
-def estimatePoseSingleMarkers(corners, marker_size, mtx, distortion):
-    '''
-    This will estimate the rvec and tvec for each of the marker corners detected by:
-       corners, ids, rejectedImgPoints = detector.detectMarkers(image)
-    corners - is an array of detected corners for each detected marker in the image
-    marker_size - is the size of the detected markers
-    mtx - is the camera matrix
-    distortion - is the camera distortion matrix
-    RETURN list of rvecs, tvecs, and trash (so that it corresponds to the old estimatePoseSingleMarkers())
+class ArucoDetector:
+    def __init__(
+        self,
+        camera_matrix: np.array,
+        distortion_coefs: np.array,
+    ):
+        self.dictionary = cv.aruco.getPredefinedDictionary(cv.aruco.DICT_4X4_250)
+        self.parameters = cv.aruco.DetectorParameters()
+        self.parameters.minCornerDistanceRate = 0.01
+        self.parameters.minDistanceToBorder = 1
+        self.parameters.minMarkerPerimeterRate = 0.01
 
-    Shamelessly sourcedfrom:
-    https://stackoverflow.com/questions/76802576/how-to-estimate-pose-of-single-marker-in-opencv-python-4-8-0
-    '''
-    marker_points = np.array([[-marker_size / 2, marker_size / 2, 0],
-                              [marker_size / 2, marker_size / 2, 0],
-                              [marker_size / 2, -marker_size / 2, 0],
-                              [-marker_size / 2, -marker_size / 2, 0]], dtype=np.float32)
-    trash, rvecs, tvecs = [], [], []
+        self.detector = cv.aruco.ArucoDetector(self.dictionary, self.parameters)
 
-    for c in corners:
-        n, R, t = cv.solvePnP(marker_points, c, mtx, distortion, False, cv.SOLVEPNP_IPPE_SQUARE)
-        rvecs.append(R)
-        tvecs.append(t)
-        trash.append(n)
-    return rvecs, tvecs, trash
+        self.camera_matrix = camera_matrix
+        self.distortion_coefs = distortion_coefs
+
+    def detectMarkers(self, image):
+        corners, ids, rejectedImgPoints = self.detector.detectMarkers(image)
+        return corners, ids, rejectedImgPoints
+
+    def estimateAngle(self, image):
+        corners, ids, rejectedImgPoints = self.detectMarkers(image)
+        if ids is not None:
+            rvecs, tvecs, trash = self.estimatePoseSingleMarkers(
+                corners, 0.05, self.camera_matrix, self.distortion_coefs
+            )
+            return rvecs[0][2]
+        else:
+            return None
+
+    def estimatePoseSingleMarkers(self, corners, marker_size, mtx, distortion):
+        """
+        This will estimate the rvec and tvec for each of the marker corners detected by:
+        corners, ids, rejectedImgPoints = detector.detectMarkers(image)
+        corners - is an array of detected corners for each detected marker in the image
+        marker_size - is the size of the detected markers
+        mtx - is the camera matrix
+        distortion - is the camera distortion matrix
+        RETURN list of rvecs, tvecs, and trash (so that it corresponds to the old estimatePoseSingleMarkers())
+
+        Shamelessly sourcedfrom:
+        https://stackoverflow.com/questions/76802576/how-to-estimate-pose-of-single-marker-in-opencv-python-4-8-0
+        """
+        marker_points = np.array(
+            [
+                [-marker_size / 2, marker_size / 2, 0],
+                [marker_size / 2, marker_size / 2, 0],
+                [marker_size / 2, -marker_size / 2, 0],
+                [-marker_size / 2, -marker_size / 2, 0],
+            ],
+            dtype=np.float32,
+        )
+        trash, rvecs, tvecs = [], [], []
+
+        for c in corners:
+            n, R, t = cv.solvePnP(
+                marker_points, c, mtx, distortion, False, cv.SOLVEPNP_IPPE_SQUARE
+            )
+            rvecs.append(R)
+            tvecs.append(t)
+            trash.append(n)
+        return rvecs, tvecs, trash
+
+
+aruco_detector = ArucoDetector(
+    np.array(
+        [
+            [305.5718893575089, 0, 303.0797142544728],
+            [0, 308.8338858195428, 231.8845403702499],
+            [0, 0, 1],
+        ]
+    ),
+    np.array([-0.2, 0.0305, 0.0005859930422629722, -0.0006697840226199427, 0]),
+)
 
 env.reset()
 env.render()
@@ -140,7 +193,9 @@ def update(dt):
     v1 = action[0]
     v2 = action[1]
     # Limit radius of curvature
-    if v1 == 0 or abs(v2 / v1) > (min_rad + wheel_distance / 2.0) / (min_rad - wheel_distance / 2.0):
+    if v1 == 0 or abs(v2 / v1) > (min_rad + wheel_distance / 2.0) / (
+        min_rad - wheel_distance / 2.0
+    ):
         # adjust velocities evenly such that condition is fulfilled
         delta_v = (v2 - v1) / 2 - wheel_distance / (4 * min_rad) * (v1 + v2)
         v1 += delta_v
@@ -157,29 +212,67 @@ def update(dt):
     # print("step_count = %s, reward=%.3f" % (env.unwrapped.step_count, reward))
 
     # dentro da função
-    frame = cv.cvtColor(obs, cv.COLOR_RGB2BGR) # conversão PIL para OPENCV https://stackoverflow.com/questions/14134892/convert-image-from-pil-to-opencv-format, don't ask me
-    markerCorners, markerIds, rejectedCandidates = detector.detectMarkers(frame)
+    frame = cv.cvtColor(
+        obs, cv.COLOR_RGB2BGR
+    )  # conversão PIL para OPENCV https://stackoverflow.com/questions/14134892/convert-image-from-pil-to-opencv-format, don't ask me
 
-    camera_matrix = np.array([
-            [305.5718893575089,
-            0,
-            303.0797142544728],
-            [0,
-            308.8338858195428,
-            231.8845403702499],
-            [0,
-            0,
-            1],
-        ])
-    distortion_coefs = np.array([-0.2, 0.0305, 0.0005859930422629722, -0.0006697840226199427, 0])
+    # TODO:
+    # Remove colors which are not yellow or white
+    # Convert to HSV
+    converted = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
+    # Define color ranges
+    lower_white, upper_white = np.array([0, 0, 200]), np.array([175, 175, 255])
+    lower_yellow, upper_yellow = np.array([20, 100, 100]), np.array([30, 255, 255])
+    # Create masks
+    mask_white = cv.inRange(converted, lower_white, upper_white)
+    mask_yellow = cv.inRange(converted, lower_yellow, upper_yellow)
 
-    rvecs, tvecs, trash = estimatePoseSingleMarkers(markerCorners, 0.05, camera_matrix, distortion_coefs)
-    
-    if markerIds is not None:
-        print(f'Detected markers: {markerIds}')
-        # print(f'Rotation Vectors: {rvecs}')
-        angle = rvecs[0][2]
-        print(f'Angle: {angle}')
+    # Erode and dilate masks
+
+    erode_kernel = np.ones((5, 5), np.uint8)
+    dilate_kernel = np.ones((9, 9), np.uint8)
+    mask_white = cv.erode(mask_white, erode_kernel, iterations=2)
+    mask_yellow = cv.erode(mask_yellow, erode_kernel, iterations=1)
+    mask_yellow = cv.dilate(mask_yellow, dilate_kernel, iterations=1)
+
+    # Apply masks
+    frame_yellow = cv.bitwise_and(frame, frame, mask=mask_yellow)
+    frame_white = cv.bitwise_and(frame, frame, mask=mask_white)
+
+    # Get lanes by detecting edges
+    edges_white = cv.Canny(frame_white, 100, 200)
+    edges_yellow = cv.Canny(frame_yellow, 100, 200)
+
+    # Get lines from edges
+    white_lines = cv.HoughLinesP(
+        edges_white, 1, np.pi / 180, 100, minLineLength=100, maxLineGap=10
+    )
+    yellow_lines = cv.HoughLinesP(
+        edges_yellow, 1, np.pi / 180, 100, minLineLength=100, maxLineGap=50
+    )
+
+    # Remove horizontal lines
+    if white_lines is not None:
+        white_lines = white_lines[abs(white_lines[:, :, 1] - white_lines[:, :, 3]) > 50]
+
+    # Get the average line
+    if white_lines is not None:
+        white_line = np.mean(white_lines, axis=0, dtype=np.int32)
+        x1, y1, x2, y2 = white_line
+        cv.line(frame, (x1, y1), (x2, y2), (0, 0, 255), 5)
+        white_angle = np.arctan2(y2 - y1, x2 - x1) - np.pi / 2
+    if yellow_lines is not None:
+        yellow_line = np.mean(yellow_lines, axis=0, dtype=np.int32)
+        x1, y1, x2, y2 = yellow_line[0]
+        cv.line(frame, (x1, y1), (x2, y2), (255, 0, 0), 5)
+        yellow_angle = np.arctan2(y2 - y1, x2 - x1) - np.pi / 2
+
+    cv.imshow("frame", frame)
+    cv.waitKey(1)
+    angle = aruco_detector.estimateAngle(frame)
+
+    if angle:
+        print(f"Angle: {angle}")
     else:
         print(f"Not detected")
 
