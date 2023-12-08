@@ -235,13 +235,15 @@ def update(dt):
     mask_yellow = cv.erode(mask_yellow, erode_kernel, iterations=1)
     mask_yellow = cv.dilate(mask_yellow, dilate_kernel, iterations=1)
 
-    # Apply masks
-    frame_yellow = cv.bitwise_and(frame, frame, mask=mask_yellow)
-    frame_white = cv.bitwise_and(frame, frame, mask=mask_white)
+    cv.imshow("mask_white", mask_white)
+    cv.imshow("mask_yellow", mask_yellow)
 
     # Get lanes by detecting edges
-    edges_white = cv.Canny(frame_white, 100, 200)
-    edges_yellow = cv.Canny(frame_yellow, 100, 200)
+    edges_white = cv.Canny(mask_white, 100, 200)
+    edges_yellow = cv.Canny(mask_yellow, 100, 200)
+
+    cv.imshow("edges_white", edges_white)
+    cv.imshow("edges_yellow", edges_yellow)
 
     # Get lines from edges
     white_lines = cv.HoughLinesP(
