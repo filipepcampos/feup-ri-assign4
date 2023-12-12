@@ -50,7 +50,9 @@ class WorldObj:
         self.min_coords = obj["mesh"].min_coords
         self.max_coords = obj["mesh"].max_coords
         self.static = obj["static"]
-        self.safety_radius = safety_radius_mult * calculate_safety_radius(self.mesh, self.scale)
+        self.safety_radius = safety_radius_mult * calculate_safety_radius(
+            self.mesh, self.scale
+        )
 
         self.domain_rand = domain_rand
         self.angle = obj["angle"]
@@ -234,10 +236,16 @@ class DuckiebotObj(WorldObj):
         """
 
         # Find the curve point closest to the agent, and the tangent at that point
-        closest_point, closest_tangent = closest_curve_point(self.pos, self.angle, duckie_name="duckiebot")
+        closest_point, closest_tangent = closest_curve_point(
+            self.pos, self.angle, duckie_name="duckiebot"
+        )
         if closest_point is None or closest_tangent is None:
             msg = f"Cannot find closest point/tangent from {self.pos}, {self.angle} "
             raise Exception(msg)
+        
+
+        print(self.pos)
+        print("AAAAAAAAAAAAAAAAAA")
 
         iterations = 0
         lookup_distance = self.follow_dist
@@ -277,7 +285,9 @@ class DuckiebotObj(WorldObj):
         """
         See if the agent collided with this object
         """
-        return intersects_single_obj(agent_corners, self.obj_corners.T, agent_norm, self.obj_norm)
+        return intersects_single_obj(
+            agent_corners, self.obj_corners.T, agent_norm, self.obj_norm
+        )
 
     def proximity(self, agent_pos, agent_safety_rad):
         """
@@ -321,7 +331,9 @@ class DuckiebotObj(WorldObj):
         w = (u_r_limited - u_l_limited) / self.wheel_dist
 
         # Compute the distance to the center of curvature
-        r = (self.wheel_dist * (u_l_limited + u_r_limited)) / (2 * (u_l_limited - u_r_limited))
+        r = (self.wheel_dist * (u_l_limited + u_r_limited)) / (
+            2 * (u_l_limited - u_r_limited)
+        )
 
         # Compute the rotation angle for this time step
         rotAngle = w * deltaTime
@@ -342,12 +354,18 @@ class DuckiebotObj(WorldObj):
 
         # Recompute the bounding boxes (BB) for the duckiebot
         self.obj_corners = agent_boundbox(
-            self.pos, self.robot_width, self.robot_length, get_dir_vec(self.angle), get_right_vec(self.angle)
+            self.pos,
+            self.robot_width,
+            self.robot_length,
+            get_dir_vec(self.angle),
+            get_right_vec(self.angle),
         )
 
 
 class DuckieObj(WorldObj):
-    def __init__(self, obj, domain_rand: bool, safety_radius_mult: float, walk_distance: float):
+    def __init__(
+        self, obj, domain_rand: bool, safety_radius_mult: float, walk_distance: float
+    ):
         WorldObj.__init__(self, obj, domain_rand, safety_radius_mult)
 
         self.walk_distance = walk_distance
@@ -378,7 +396,9 @@ class DuckieObj(WorldObj):
         """
         See if the agent collided with this object
         """
-        return intersects_single_obj(agent_corners, self.obj_corners.T, agent_norm, self.obj_norm)
+        return intersects_single_obj(
+            agent_corners, self.obj_corners.T, agent_norm, self.obj_norm
+        )
 
     def proximity(self, agent_pos, agent_safety_rad):
         """
@@ -524,7 +544,9 @@ class CheckerboardObj(WorldObj):
         """
         See if the agent collided with this object
         """
-        return intersects_single_obj(agent_corners, self.obj_corners.T, agent_norm, self.obj_norm)
+        return intersects_single_obj(
+            agent_corners, self.obj_corners.T, agent_norm, self.obj_norm
+        )
 
     def proximity(self, agent_pos, agent_safety_rad):
         """

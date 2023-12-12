@@ -16,7 +16,13 @@ import numpy as np
 import gym
 
 from utils.env import launch_env
-from utils.wrappers import NormalizeWrapper, ImgWrapper, DtRewardWrapper, ActionWrapper, ResizeWrapper
+from utils.wrappers import (
+    NormalizeWrapper,
+    ImgWrapper,
+    DtRewardWrapper,
+    ActionWrapper,
+    ResizeWrapper,
+)
 from utils.teacher import PurePursuitExpert
 
 from imitation.pytorch.model import Model

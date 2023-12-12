@@ -62,7 +62,11 @@ def is_between_ordered(val, lowerbound, upperbound):
 
 
 def generate_corners(
-    pos: np.ndarray, min_coords: np.ndarray, max_coords: np.ndarray, theta: float, scale: float
+    pos: np.ndarray,
+    min_coords: np.ndarray,
+    max_coords: np.ndarray,
+    theta: float,
+    scale: float,
 ) -> np.ndarray:
     """
     Generates corners given obj pos, extents, scale, and rotation
@@ -71,10 +75,18 @@ def generate_corners(
     pz = pos[-1]
     return np.array(
         [
-            rotate_point(min_coords[0] * scale + px, min_coords[-1] * scale + pz, px, pz, theta),
-            rotate_point(max_coords[0] * scale + px, min_coords[-1] * scale + pz, px, pz, theta),
-            rotate_point(max_coords[0] * scale + px, max_coords[-1] * scale + pz, px, pz, theta),
-            rotate_point(min_coords[0] * scale + px, max_coords[-1] * scale + pz, px, pz, theta),
+            rotate_point(
+                min_coords[0] * scale + px, min_coords[-1] * scale + pz, px, pz, theta
+            ),
+            rotate_point(
+                max_coords[0] * scale + px, min_coords[-1] * scale + pz, px, pz, theta
+            ),
+            rotate_point(
+                max_coords[0] * scale + px, max_coords[-1] * scale + pz, px, pz, theta
+            ),
+            rotate_point(
+                min_coords[0] * scale + px, max_coords[-1] * scale + pz, px, pz, theta
+            ),
         ]
     )
 
@@ -145,13 +157,27 @@ def intersects(duckie, objs_stacked, duckie_norm, norms_stacked):
     # Iterate through each object we are checking against
     for idx in range(objduck_min.shape[0]):
         # If any interval doesn't overlap, immediately know objects don't intersect
-        if not overlaps(duckduck_min[0], duckduck_max[0], objduck_min[idx][0], objduck_max[idx][0]):
+        if not overlaps(
+            duckduck_min[0], duckduck_max[0], objduck_min[idx][0], objduck_max[idx][0]
+        ):
             continue
-        if not overlaps(duckduck_min[1], duckduck_max[1], objduck_min[idx][1], objduck_max[idx][1]):
+        if not overlaps(
+            duckduck_min[1], duckduck_max[1], objduck_min[idx][1], objduck_max[idx][1]
+        ):
             continue
-        if not overlaps(duckobj_min[idx][0], duckobj_max[idx][0], objobj_min[idx][0], objobj_max[idx][0]):
+        if not overlaps(
+            duckobj_min[idx][0],
+            duckobj_max[idx][0],
+            objobj_min[idx][0],
+            objobj_max[idx][0],
+        ):
             continue
-        if not overlaps(duckobj_min[idx][1], duckobj_max[idx][1], objobj_min[idx][1], objobj_max[idx][1]):
+        if not overlaps(
+            duckobj_min[idx][1],
+            duckobj_max[idx][1],
+            objobj_min[idx][1],
+            objobj_max[idx][1],
+        ):
             continue
         # All projection intervals overlap, collision with an object
         return True

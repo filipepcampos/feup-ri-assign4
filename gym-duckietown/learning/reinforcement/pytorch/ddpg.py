@@ -77,7 +77,9 @@ class ActorCNN(nn.Module):
 
         # because we don't want our duckie to go backwards
         x = self.lin2(x)
-        x[:, 0] = self.max_action * self.sigm(x[:, 0])  # because we don't want the duckie to go backwards
+        x[:, 0] = self.max_action * self.sigm(
+            x[:, 0]
+        )  # because we don't want the duckie to go backwards
         x[:, 1] = self.tanh(x[:, 1])
 
         return x
@@ -170,7 +172,6 @@ class DDPG(object):
         print("Initialized Target+Opt [Critic]")
 
     def predict(self, state):
-
         # just making sure the state has the correct format, otherwise the prediction doesn't work
         assert state.shape[0] == 3
 
@@ -181,9 +182,7 @@ class DDPG(object):
         return self.actor(state).cpu().data.numpy().flatten()
 
     def train(self, replay_buffer, iterations, batch_size=64, discount=0.99, tau=0.001):
-
         for it in range(iterations):
-
             # Sample replay buffer
             sample = replay_buffer.sample(batch_size, flat=self.flat)
             state = torch.FloatTensor(sample["state"]).to(device)
@@ -216,23 +215,39 @@ class DDPG(object):
             self.actor_optimizer.step()
 
             # Update the frozen target models
-            for param, target_param in zip(self.critic.parameters(), self.critic_target.parameters()):
-                target_param.data.copy_(tau * param.data + (1 - tau) * target_param.data)
+            for param, target_param in zip(
+                self.critic.parameters(), self.critic_target.parameters()
+            ):
+                target_param.data.copy_(
+                    tau * param.data + (1 - tau) * target_param.data
+                )
 
-            for param, target_param in zip(self.actor.parameters(), self.actor_target.parameters()):
-                target_param.data.copy_(tau * param.data + (1 - tau) * target_param.data)
+            for param, target_param in zip(
+                self.actor.parameters(), self.actor_target.parameters()
+            ):
+                target_param.data.copy_(
+                    tau * param.data + (1 - tau) * target_param.data
+                )
 
     def save(self, filename, directory):
         print("Saving to {}/{}_[actor|critic].pth".format(directory, filename))
-        torch.save(self.actor.state_dict(), "{}/{}_actor.pth".format(directory, filename))
+        torch.save(
+            self.actor.state_dict(), "{}/{}_actor.pth".format(directory, filename)
+        )
         print("Saved Actor")
-        torch.save(self.critic.state_dict(), "{}/{}_critic.pth".format(directory, filename))
+        torch.save(
+            self.critic.state_dict(), "{}/{}_critic.pth".format(directory, filename)
+        )
         print("Saved Critic")
 
     def load(self, filename, directory):
         self.actor.load_state_dict(
-            torch.load("{}/{}_actor.pth".format(directory, filename), map_location=device)
+            torch.load(
+                "{}/{}_actor.pth".format(directory, filename), map_location=device
+            )
         )
         self.critic.load_state_dict(
-            torch.load("{}/{}_critic.pth".format(directory, filename), map_location=device)
+            torch.load(
+                "{}/{}_critic.pth".format(directory, filename), map_location=device
+            )
         )

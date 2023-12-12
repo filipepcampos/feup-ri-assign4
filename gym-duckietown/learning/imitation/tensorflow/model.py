@@ -47,15 +47,23 @@ class TensorflowModel:
             model,
             units=64,
             activation=tf.nn.relu,
-            kernel_initializer=tf.contrib.layers.xavier_initializer(uniform=False, seed=self.seed),
-            bias_initializer=tf.contrib.layers.xavier_initializer(uniform=False, seed=self.seed),
+            kernel_initializer=tf.contrib.layers.xavier_initializer(
+                uniform=False, seed=self.seed
+            ),
+            bias_initializer=tf.contrib.layers.xavier_initializer(
+                uniform=False, seed=self.seed
+            ),
         )
         model = tf.layers.dense(
             model,
             units=32,
             activation=tf.nn.relu,
-            kernel_initializer=tf.contrib.layers.xavier_initializer(uniform=False, seed=self.seed),
-            bias_initializer=tf.contrib.layers.xavier_initializer(uniform=False, seed=self.seed),
+            kernel_initializer=tf.contrib.layers.xavier_initializer(
+                uniform=False, seed=self.seed
+            ),
+            bias_initializer=tf.contrib.layers.xavier_initializer(
+                uniform=False, seed=self.seed
+            ),
         )
 
         model = tf.layers.dense(model, self._action.shape[1])
@@ -75,13 +83,21 @@ class TensorflowModel:
             self.tf_session.run(tf.global_variables_initializer())
 
     def _pre_process(self):
-        resize = tf.map_fn(lambda frame: tf.image.resize_images(frame, (60, 80)), self._observation)
-        and_standardize = tf.map_fn(lambda frame: tf.image.per_image_standardization(frame), resize)
+        resize = tf.map_fn(
+            lambda frame: tf.image.resize_images(frame, (60, 80)), self._observation
+        )
+        and_standardize = tf.map_fn(
+            lambda frame: tf.image.per_image_standardization(frame), resize
+        )
         self._preprocessed_state = and_standardize
 
     def _create(self, input_shape, output_shape):
-        self._observation = tf.placeholder(dtype=tf.float32, shape=input_shape, name="state")
-        self._action = tf.placeholder(dtype=tf.float32, shape=output_shape, name="action")
+        self._observation = tf.placeholder(
+            dtype=tf.float32, shape=input_shape, name="state"
+        )
+        self._action = tf.placeholder(
+            dtype=tf.float32, shape=output_shape, name="action"
+        )
         self._pre_process()
 
         self._computation_graph = self.computation_graph()

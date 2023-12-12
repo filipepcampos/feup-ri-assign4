@@ -43,7 +43,9 @@ class Model(nn.Module):
 
         # because we don't want our duckie to go backwards
         x = self.lin2(x)
-        x[:, 0] = self.max_action * self.sigm(x[:, 0])  # because we don't want the duckie to go backwards
+        x[:, 0] = self.max_action * self.sigm(
+            x[:, 0]
+        )  # because we don't want the duckie to go backwards
         x[:, 1] = self.tanh(x[:, 1])
 
         return x

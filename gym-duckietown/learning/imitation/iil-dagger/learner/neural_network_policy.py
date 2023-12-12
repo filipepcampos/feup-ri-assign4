@@ -60,7 +60,9 @@ class NeuralNetworkPolicy:
         self.dataset = dataset
         # Load previous weights
         if "model_path" in kwargs:
-            self.model.load_state_dict(torch.load(kwargs.get("model_path"), map_location=self._device))
+            self.model.load_state_dict(
+                torch.load(kwargs.get("model_path"), map_location=self._device)
+            )
             print("Loaded ")
 
     def __del__(self):
@@ -130,7 +132,9 @@ class NeuralNetworkPolicy:
         return prediction
 
     def save(self):
-        torch.save(self.model.state_dict(), os.path.join(self.storage_location, "model.pt"))
+        torch.save(
+            self.model.state_dict(), os.path.join(self.storage_location, "model.pt")
+        )
 
     def _transform(self, observations, expert_actions):
         # Resize images
@@ -148,7 +152,9 @@ class NeuralNetworkPolicy:
             ]
         )
 
-        observations = [compose_obs(observation).numpy() for observation in observations]
+        observations = [
+            compose_obs(observation).numpy() for observation in observations
+        ]
         try:
             # scaling velocity to become in 0-1 range which is multiplied by max speed to get actual vel
             # also scaling steering angle to become in range -1 to 1 to make it easier to regress
@@ -158,7 +164,9 @@ class NeuralNetworkPolicy:
             ]
         except:
             pass
-        expert_actions = [torch.tensor(expert_action).numpy() for expert_action in expert_actions]
+        expert_actions = [
+            torch.tensor(expert_action).numpy() for expert_action in expert_actions
+        ]
 
         return observations, expert_actions
 
@@ -171,7 +179,9 @@ class NeuralNetworkPolicy:
     def _logging(self, **kwargs):
         epoch = kwargs.get("epoch")
         loss = kwargs.get("loss")
-        self.writer.add_scalar("Loss/train/{}".format(self._train_iteration), loss, epoch)
+        self.writer.add_scalar(
+            "Loss/train/{}".format(self._train_iteration), loss, epoch
+        )
 
     def _on_optimization_end(self):
         self._train_iteration += 1

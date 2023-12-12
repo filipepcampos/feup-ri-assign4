@@ -31,7 +31,11 @@ class PurePursuitPolicy:
     """
 
     def __init__(
-        self, env, ref_velocity=REF_VELOCITY, following_distance=FOLLOWING_DISTANCE, max_iterations=1000
+        self,
+        env,
+        ref_velocity=REF_VELOCITY,
+        following_distance=FOLLOWING_DISTANCE,
+        max_iterations=1000,
     ):
         """
         Parameters
@@ -75,7 +79,9 @@ class PurePursuitPolicy:
             if not obj.static and obj.kind == MapFormat1Constants.KIND_DUCKIEBOT:
                 if True:
                     collision_penalty = abs(
-                        obj.proximity(self.env.cur_pos, AGENT_SAFETY_RAD * AGENT_SAFETY_GAIN)
+                        obj.proximity(
+                            self.env.cur_pos, AGENT_SAFETY_RAD * AGENT_SAFETY_GAIN
+                        )
                     )
                     if collision_penalty > 0:
                         # this means we are approaching and we need to slow down
@@ -92,7 +98,9 @@ class PurePursuitPolicy:
         if "curve" in current_tile["kind"] or abs(projected_angle) < 0.92:
             # slowing down by a scale of 0.5
             velocity_scale = 0.5
-        _, closest_point, curve_point = self._get_projected_angle_difference(lookup_distance)
+        _, closest_point, curve_point = self._get_projected_angle_difference(
+            lookup_distance
+        )
 
         if closest_point is None:  # if cannot find a curve point in max iterations
             return [0, 0]
@@ -100,7 +108,9 @@ class PurePursuitPolicy:
         # Compute a normalized vector to the curve point
         point_vec = curve_point - self.env.cur_pos
         point_vec /= np.linalg.norm(point_vec)
-        right_vec = np.array([math.sin(self.env.cur_angle), 0, math.cos(self.env.cur_angle)])
+        right_vec = np.array(
+            [math.sin(self.env.cur_angle), 0, math.cos(self.env.cur_angle)]
+        )
         dot = np.dot(right_vec, point_vec)
         omega = -1 * dot
         # range of dot is just -pi/2 and pi/2 and will be multiplied later by a gain adjustable if we are
@@ -116,7 +126,9 @@ class PurePursuitPolicy:
 
     def _get_projected_angle_difference(self, lookup_distance):
         # Find the projection along the path
-        closest_point, closest_tangent = self.env.closest_curve_point(self.env.cur_pos, self.env.cur_angle)
+        closest_point, closest_tangent = self.env.closest_curve_point(
+            self.env.cur_pos, self.env.cur_angle
+        )
 
         iterations = 0
         curve_angle = None
@@ -125,7 +137,9 @@ class PurePursuitPolicy:
             # Project a point ahead along the curve tangent,
             # then find the closest point to to that
             follow_point = closest_point + closest_tangent * lookup_distance
-            curve_point, curve_angle = self.env.closest_curve_point(follow_point, self.env.cur_angle)
+            curve_point, curve_angle = self.env.closest_curve_point(
+                follow_point, self.env.cur_angle
+            )
 
             # If we have a valid point on the curve, stop
             if curve_angle is not None and curve_point is not None:
@@ -161,7 +175,10 @@ def to_image(np_array):
 os.chdir("./src/gym_duckietown")
 
 environment = DuckietownEnv(
-    domain_rand=False, max_steps=math.inf, randomize_maps_on_reset=False, map_name="loop_obstacles"
+    domain_rand=False,
+    max_steps=math.inf,
+    randomize_maps_on_reset=False,
+    map_name="loop_obstacles",
 )
 
 policy = PurePursuitPolicy(environment)

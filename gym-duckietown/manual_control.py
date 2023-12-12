@@ -23,11 +23,21 @@ parser.add_argument("--env-name", default=None)
 parser.add_argument("--map-name", default="udem1")
 parser.add_argument("--distortion", default=False, action="store_true")
 parser.add_argument("--camera_rand", default=False, action="store_true")
-parser.add_argument("--draw-curve", action="store_true", help="draw the lane following curve")
-parser.add_argument("--draw-bbox", action="store_true", help="draw collision detection bounding boxes")
-parser.add_argument("--domain-rand", action="store_true", help="enable domain randomization")
-parser.add_argument("--dynamics_rand", action="store_true", help="enable dynamics randomization")
-parser.add_argument("--frame-skip", default=1, type=int, help="number of frames to skip")
+parser.add_argument(
+    "--draw-curve", action="store_true", help="draw the lane following curve"
+)
+parser.add_argument(
+    "--draw-bbox", action="store_true", help="draw collision detection bounding boxes"
+)
+parser.add_argument(
+    "--domain-rand", action="store_true", help="enable domain randomization"
+)
+parser.add_argument(
+    "--dynamics_rand", action="store_true", help="enable dynamics randomization"
+)
+parser.add_argument(
+    "--frame-skip", default=1, type=int, help="number of frames to skip"
+)
 parser.add_argument("--seed", default=1, type=int, help="seed")
 args = parser.parse_args()
 
@@ -105,7 +115,9 @@ def update(dt):
     v1 = action[0]
     v2 = action[1]
     # Limit radius of curvature
-    if v1 == 0 or abs(v2 / v1) > (min_rad + wheel_distance / 2.0) / (min_rad - wheel_distance / 2.0):
+    if v1 == 0 or abs(v2 / v1) > (min_rad + wheel_distance / 2.0) / (
+        min_rad - wheel_distance / 2.0
+    ):
         # adjust velocities evenly such that condition is fulfilled
         delta_v = (v2 - v1) / 2 - wheel_distance / (4 * min_rad) * (v1 + v2)
         v1 += delta_v
@@ -122,7 +134,6 @@ def update(dt):
     print("step_count = %s, reward=%.3f" % (env.unwrapped.step_count, reward))
 
     if key_handler[key.RETURN]:
-
         im = Image.fromarray(obs)
 
         im.save("screen.png")
