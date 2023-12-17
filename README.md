@@ -13,4 +13,12 @@ pip install pyglet==1.5.11  # otherwise the simulator crashes
 
 Install duckietown-world
 ```
+cd duckietown-world
+pip install -e .
+```
+
+Run movement script
+```
+cd gym-duckietown
+./movement.py --env-name Duckietown --map-name ETH_small_intersect
 ```
