@@ -141,7 +141,7 @@ def normalize_angle(angle):
 
 def save_screenshot(obs):
     im = Image.fromarray(obs)
-    #im.save("screen.png")
+    im.save("../screen.png")
 
     # Get main duckiebot position and angle
     main_duckiebot = [env.cur_pos, env.cur_angle]
