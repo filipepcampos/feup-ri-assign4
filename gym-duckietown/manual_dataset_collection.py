@@ -13,8 +13,11 @@ import gym
 import numpy as np
 import pyglet
 from pyglet.window import key
+import cv2 as cv
+import os
 
 from gym_duckietown.envs import DuckietownEnv
+from detect_duckie_bb import eval_img_duckies
 
 # from experiments.utils import save_img
 
@@ -49,6 +52,29 @@ else:
 
 env.reset()
 env.render()
+
+DATASET_PATH = "../dataset/"
+IMAGES_PATH = os.path.join(DATASET_PATH, "images")
+LABELS_PATH = os.path.join(DATASET_PATH, "labels")
+
+
+def get_latest_image_id():
+    # Get all images names
+    images_names = os.listdir(IMAGES_PATH)
+
+    # Get latest image id
+    latest_image_id = 0
+    for image_name in images_names:
+        image_id = int(image_name.split(".")[0])
+        if image_id > latest_image_id:
+            latest_image_id = image_id
+
+    return latest_image_id
+
+
+#latest_image_id = get_latest_image_id()
+#print("Latest image id: ", latest_image_id)
+#exit()
 
 
 @env.unwrapped.window.event
@@ -131,6 +157,7 @@ def update(dt):
 
     env.render()
 
+
 def normalize_angle(angle):
     # Normalize angle between -pi and pi
     angle = angle % (2 * np.pi)
@@ -140,8 +167,10 @@ def normalize_angle(angle):
 
 
 def save_screenshot(obs):
-    im = Image.fromarray(obs)
-    im.save("../screen.png")
+    img = Image.fromarray(obs)
+    img.save("../screen.png")
+
+    frame = cv.cvtColor(obs, cv.COLOR_RGB2BGR)
 
     # Get main duckiebot position and angle
     main_duckiebot = [env.cur_pos, env.cur_angle]
@@ -162,6 +191,12 @@ def save_screenshot(obs):
     # Print relative position and angle
     print("Relative position: ", relative_pos)
     print("Relative angle: ", relative_angle)
+
+    # Get bounding boxes
+    bounding_boxes = eval_img_duckies(frame)
+
+    # Print bounding boxes
+    print("Bounding boxes: ", bounding_boxes)
 
 
 pyglet.clock.schedule_interval(update, 1.0 / env.unwrapped.frame_rate)
