@@ -17,7 +17,7 @@ import cv2 as cv
 import os
 
 from gym_duckietown.envs import DuckietownEnv
-from detect_bb import eval_img_objects
+from detect_bb import eval_img_object
 
 # from experiments.utils import save_img
 
@@ -164,11 +164,11 @@ def normalize_angle(angle):
     return angle
 
 
-def write_label(class_id, relative_pos, relative_angle, bounding_boxes):
-    if len(bounding_boxes) == 0:
+def write_label(class_id, relative_pos, relative_angle, bounding_box):
+    if bounding_box is None:
         label = ""
     else:
-        label = f"{class_id} {' '.join(map(str, bounding_boxes[0]))} {' '.join(map(str, relative_pos))} {relative_angle}"
+        label = f"{class_id} {' '.join(map(str, bounding_box))} {' '.join(map(str, relative_pos))} {relative_angle}"
 
     with open(os.path.join(LABELS_PATH, str(current_image_id) + ".txt"), "w") as f:
         f.write(label)
@@ -202,13 +202,13 @@ def save_screenshot(obs):
     print("Relative angle: ", relative_angle)
 
     # Get bounding boxes
-    bounding_boxes = eval_img_objects(frame, CLASS_ID)
+    bounding_box = eval_img_object(frame, CLASS_ID)
 
     # Print bounding boxes
-    print("Bounding boxes: ", bounding_boxes)
+    print("Bounding boxes: ", bounding_box)
 
     # Write label
-    write_label(CLASS_ID, relative_pos, relative_angle, bounding_boxes)
+    write_label(CLASS_ID, relative_pos, relative_angle, bounding_box)
 
     # Save image
     img = Image.fromarray(obs)

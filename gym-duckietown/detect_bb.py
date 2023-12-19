@@ -35,24 +35,36 @@ def apply_morphology(thresh, class_id):
     return closing
 
 
-def find_contours(img):
+def find_contour(img):
     contours, _ = cv2.findContours(img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    return contours
+
+    if len(contours) == 0:
+        return None
+
+    biggest_contour = contours[0]
+    biggest_area = cv2.contourArea(biggest_contour)
+    for contour in contours[1:]:
+        area = cv2.contourArea(contour)
+        if area > biggest_area:
+            biggest_contour = contour
+            biggest_area = area
+
+    return biggest_contour
 
 
-def find_bounding_boxes(contours):
-    bounding_boxes = []
-    for contour in contours:
-        x, y, w, h = cv2.boundingRect(contour)
-        bounding_boxes.append([x, y, w, h])
-    return bounding_boxes
+def find_bounding_box(contour):
+    if contour is None:
+        return None
+
+    x, y, w, h = cv2.boundingRect(contour)
+    return [x, y, w, h]
 
 
-def eval_img_objects(img, class_id):
+def eval_img_object(img, class_id):
     filtered_img = filter_color(img, class_id)
     gray_img = cv2.cvtColor(filtered_img, cv2.COLOR_BGR2GRAY)
     thresh = apply_threshold(gray_img)
     closing = apply_morphology(thresh, class_id)
-    contours = find_contours(closing)
-    bounding_boxes = find_bounding_boxes(contours)
-    return bounding_boxes
+    contours = find_contour(closing)
+    bounding_box = find_bounding_box(contours)
+    return bounding_box
