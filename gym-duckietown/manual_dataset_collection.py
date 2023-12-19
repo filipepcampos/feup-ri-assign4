@@ -17,7 +17,7 @@ import cv2 as cv
 import os
 
 from gym_duckietown.envs import DuckietownEnv
-from detect_duckie_bb import eval_img_duckies
+from detect_bb import eval_img_duckies
 
 # from experiments.utils import save_img
 
@@ -63,7 +63,7 @@ def get_latest_image_id():
     images_names = os.listdir(IMAGES_PATH)
 
     # Get latest image id
-    latest_image_id = 0
+    latest_image_id = -1
     for image_name in images_names:
         image_id = int(image_name.split(".")[0])
         if image_id > latest_image_id:
@@ -72,9 +72,7 @@ def get_latest_image_id():
     return latest_image_id
 
 
-#latest_image_id = get_latest_image_id()
-#print("Latest image id: ", latest_image_id)
-#exit()
+current_image_id = get_latest_image_id() + 1
 
 
 @env.unwrapped.window.event
@@ -166,9 +164,20 @@ def normalize_angle(angle):
     return angle
 
 
+def write_label(class_id, relative_pos, relative_angle, bounding_boxes):
+    if len(bounding_boxes) == 0:
+        label = ""
+    else:
+        label = f"{class_id} {' '.join(bounding_boxes)} {' '.join(relative_pos)} {relative_angle}"
+
+    with open(os.path.join(LABELS_PATH, str(current_image_id) + ".txt"), "w") as f:
+        f.write(label)
+
+
 def save_screenshot(obs):
+    global current_image_id
     img = Image.fromarray(obs)
-    img.save("../screen.png")
+    img.save(os.path.join(IMAGES_PATH, str(current_image_id) + ".png"))
 
     frame = cv.cvtColor(obs, cv.COLOR_RGB2BGR)
 
@@ -197,6 +206,12 @@ def save_screenshot(obs):
 
     # Print bounding boxes
     print("Bounding boxes: ", bounding_boxes)
+
+    # Write label
+    write_label(relative_pos, relative_angle, bounding_boxes)
+
+    # Increment image id
+    current_image_id += 1
 
 
 pyglet.clock.schedule_interval(update, 1.0 / env.unwrapped.frame_rate)
