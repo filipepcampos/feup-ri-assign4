@@ -17,7 +17,7 @@ import cv2 as cv
 import os
 
 from gym_duckietown.envs import DuckietownEnv
-from detect_bb import eval_img_duckies
+from detect_bb import eval_img_objects
 
 # from experiments.utils import save_img
 
@@ -168,7 +168,7 @@ def write_label(class_id, relative_pos, relative_angle, bounding_boxes):
     if len(bounding_boxes) == 0:
         label = ""
     else:
-        label = f"{class_id} {' '.join(bounding_boxes)} {' '.join(relative_pos)} {relative_angle}"
+        label = f"{class_id} {' '.join(map(str, bounding_boxes[0]))} {' '.join(map(str, relative_pos))} {relative_angle}"
 
     with open(os.path.join(LABELS_PATH, str(current_image_id) + ".txt"), "w") as f:
         f.write(label)
@@ -176,8 +176,8 @@ def write_label(class_id, relative_pos, relative_angle, bounding_boxes):
 
 def save_screenshot(obs):
     global current_image_id
-    img = Image.fromarray(obs)
-    img.save(os.path.join(IMAGES_PATH, str(current_image_id) + ".png"))
+
+    CLASS_ID = 1
 
     frame = cv.cvtColor(obs, cv.COLOR_RGB2BGR)
 
@@ -202,13 +202,17 @@ def save_screenshot(obs):
     print("Relative angle: ", relative_angle)
 
     # Get bounding boxes
-    bounding_boxes = eval_img_duckies(frame)
+    bounding_boxes = eval_img_objects(frame, CLASS_ID)
 
     # Print bounding boxes
     print("Bounding boxes: ", bounding_boxes)
 
     # Write label
-    write_label(relative_pos, relative_angle, bounding_boxes)
+    write_label(CLASS_ID, relative_pos, relative_angle, bounding_boxes)
+
+    # Save image
+    img = Image.fromarray(obs)
+    img.save(os.path.join(IMAGES_PATH, str(current_image_id) + ".png"))
 
     # Increment image id
     current_image_id += 1
