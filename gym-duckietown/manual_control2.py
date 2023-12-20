@@ -14,10 +14,14 @@ import numpy as np
 import cv2 as cv
 import pyglet
 from pyglet.window import key
-
+import queue
+from enum import Enum
 from gym_duckietown.envs import DuckietownEnv
-
 # from experiments.utils import save_img
+
+from aruco_detector import ArucoDetector
+from edge_detector import EdgeDetector
+from movement_controller import ArucoMovementController
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--env-name", default=None)
@@ -57,71 +61,6 @@ if args.env_name and args.env_name.find("Duckietown") != -1:
     )
 else:
     env = gym.make(args.env_name)
-
-
-class ArucoDetector:
-    def __init__(
-        self,
-        camera_matrix: np.array,
-        distortion_coefs: np.array,
-    ):
-        self.dictionary = cv.aruco.getPredefinedDictionary(cv.aruco.DICT_4X4_250)
-        self.parameters = cv.aruco.DetectorParameters()
-        self.parameters.minCornerDistanceRate = 0.01
-        self.parameters.minDistanceToBorder = 1
-        self.parameters.minMarkerPerimeterRate = 0.01
-
-        self.detector = cv.aruco.ArucoDetector(self.dictionary, self.parameters)
-
-        self.camera_matrix = camera_matrix
-        self.distortion_coefs = distortion_coefs
-
-    def detectMarkers(self, image):
-        corners, ids, rejectedImgPoints = self.detector.detectMarkers(image)
-        return corners, ids, rejectedImgPoints
-
-    def estimateAngle(self, image):
-        corners, ids, rejectedImgPoints = self.detectMarkers(image)
-        if ids is not None:
-            rvecs, tvecs, trash = self.estimatePoseSingleMarkers(
-                corners, 0.05, self.camera_matrix, self.distortion_coefs
-            )
-            return rvecs[0][2]
-        else:
-            return None
-
-    def estimatePoseSingleMarkers(self, corners, marker_size, mtx, distortion):
-        """
-        This will estimate the rvec and tvec for each of the marker corners detected by:
-        corners, ids, rejectedImgPoints = detector.detectMarkers(image)
-        corners - is an array of detected corners for each detected marker in the image
-        marker_size - is the size of the detected markers
-        mtx - is the camera matrix
-        distortion - is the camera distortion matrix
-        RETURN list of rvecs, tvecs, and trash (so that it corresponds to the old estimatePoseSingleMarkers())
-
-        Shamelessly sourcedfrom:
-        https://stackoverflow.com/questions/76802576/how-to-estimate-pose-of-single-marker-in-opencv-python-4-8-0
-        """
-        marker_points = np.array(
-            [
-                [-marker_size / 2, marker_size / 2, 0],
-                [marker_size / 2, marker_size / 2, 0],
-                [marker_size / 2, -marker_size / 2, 0],
-                [-marker_size / 2, -marker_size / 2, 0],
-            ],
-            dtype=np.float32,
-        )
-        trash, rvecs, tvecs = [], [], []
-
-        for c in corners:
-            n, R, t = cv.solvePnP(
-                marker_points, c, mtx, distortion, False, cv.SOLVEPNP_IPPE_SQUARE
-            )
-            rvecs.append(R)
-            tvecs.append(t)
-            trash.append(n)
-        return rvecs, tvecs, trash
 
 
 aruco_detector = ArucoDetector(
@@ -169,6 +108,9 @@ key_handler = key.KeyStateHandler()
 env.unwrapped.window.push_handlers(key_handler)
 
 
+edge_detector = EdgeDetector()
+movement_controller = ArucoMovementController()
+
 def update(dt):
     """
     This function is called at every frame to handle
@@ -190,19 +132,7 @@ def update(dt):
     if key_handler[key.SPACE]:
         action = np.array([0, 0])
 
-    v1 = action[0]
-    v2 = action[1]
-    # Limit radius of curvature
-    if v1 == 0 or abs(v2 / v1) > (min_rad + wheel_distance / 2.0) / (
-        min_rad - wheel_distance / 2.0
-    ):
-        # adjust velocities evenly such that condition is fulfilled
-        delta_v = (v2 - v1) / 2 - wheel_distance / (4 * min_rad) * (v1 + v2)
-        v1 += delta_v
-        v2 -= delta_v
-
-    action[0] = v1
-    action[1] = v2
+    av1, v2 = movement_controller.adjust_speed(action)
 
     # Speed boost
     if key_handler[key.LSHIFT]:
@@ -220,63 +150,79 @@ def update(dt):
     # Remove colors which are not yellow or white
     # Convert to HSV
     converted = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
-    # Define color ranges
-    lower_white, upper_white = np.array([0, 0, 200]), np.array([175, 175, 255])
-    lower_yellow, upper_yellow = np.array([20, 100, 100]), np.array([30, 255, 255])
-    # Create masks
-    mask_white = cv.inRange(converted, lower_white, upper_white)
-    mask_yellow = cv.inRange(converted, lower_yellow, upper_yellow)
-
-    # Erode and dilate masks
-
-    erode_kernel = np.ones((5, 5), np.uint8)
-    dilate_kernel = np.ones((9, 9), np.uint8)
-    mask_white = cv.erode(mask_white, erode_kernel, iterations=2)
-    mask_yellow = cv.erode(mask_yellow, erode_kernel, iterations=1)
-    mask_yellow = cv.dilate(mask_yellow, dilate_kernel, iterations=1)
+   
+    # Define masks
+    mask_white, mask_yellow, mask_red = edge_detector.define_masks(converted)
+    mask_white, mask_yellow, mask_red = edge_detector.erode_and_dilate((mask_white, mask_yellow, mask_red))
 
     cv.imshow("mask_white", mask_white)
     cv.imshow("mask_yellow", mask_yellow)
+    cv.imshow("mask_red", mask_red)
 
-    # Get lanes by detecting edges
-    edges_white = cv.Canny(mask_white, 100, 200)
-    edges_yellow = cv.Canny(mask_yellow, 100, 200)
+    # Get lanes by detecting edges 
+    edges_white, edges_yellow, edges_red = edge_detector.detect_edges((mask_white, mask_yellow, mask_red))   
 
     cv.imshow("edges_white", edges_white)
     cv.imshow("edges_yellow", edges_yellow)
+    cv.imshow("edges_red", edges_red)
 
     # Get lines from edges
-    white_lines = cv.HoughLinesP(
-        edges_white, 1, np.pi / 180, 100, minLineLength=100, maxLineGap=10
-    )
-    yellow_lines = cv.HoughLinesP(
-        edges_yellow, 1, np.pi / 180, 100, minLineLength=100, maxLineGap=50
-    )
-
-    # Remove horizontal lines
+    white_lines, yellow_lines, red_lines = edge_detector.detect_lines((edges_white, edges_yellow, edges_red), 
+                                                                      [10,50, 100])
+    
     if white_lines is not None:
-        white_lines = white_lines[abs(white_lines[:, :, 1] - white_lines[:, :, 3]) > 50]
+        white_lines = edge_detector.remove_horizontal_lines(white_lines)
+    if red_lines is not None:
+        print("red lines")
+        red_lines = edge_detector.get_horizontal_lines(red_lines)
 
     # Get the average line
     if white_lines is not None:
-        white_line = np.mean(white_lines, axis=0, dtype=np.int32)
-        x1, y1, x2, y2 = white_line
-        cv.line(frame, (x1, y1), (x2, y2), (0, 0, 255), 5)
-        white_angle = np.arctan2(y2 - y1, x2 - x1) - np.pi / 2
+        white_line = edge_detector.get_average_line(white_lines)
+        edge_detector.draw_line(frame, white_line, (0, 0, 255))
+        white_angle = edge_detector.get_angle(white_line)
     if yellow_lines is not None:
-        yellow_line = np.mean(yellow_lines, axis=0, dtype=np.int32)
-        x1, y1, x2, y2 = yellow_line[0]
-        cv.line(frame, (x1, y1), (x2, y2), (255, 0, 0), 5)
-        yellow_angle = np.arctan2(y2 - y1, x2 - x1) - np.pi / 2
+        yellow_line = edge_detector.get_average_line(yellow_lines)
+        edge_detector.draw_line(frame, yellow_line[0], (255, 0, 0))
+        yellow_angle = edge_detector.get_angle(yellow_line[0])
+    if red_lines is not None:
+        red_line = edge_detector.get_average_line(red_lines)
+        edge_detector.draw_line(frame, red_line, (0, 255, 0))
+        movement_controller.at_intersection(red_line)
 
     cv.imshow("frame", frame)
     cv.waitKey(1)
-    angle = aruco_detector.estimateAngle(frame)
+    
+    corners, ids, rejected = aruco_detector.detectMarkers(frame)
+   
+   
 
-    if angle:
-        print(f"Angle: {angle}")
-    else:
-        print(f"Not detected")
+   # Draw markers
+    if ids is not None:
+        rvecs, tvecs = aruco_detector.estimatePose(corners)
+        angle = rvecs[0][2]
+        distance = tvecs[0][2]
+        
+        cv.aruco.drawDetectedMarkers(frame, corners, ids)
+
+        # Draw line with angle
+        marker_coordinates = corners[0]
+        # Get center_point
+        center_point = np.mean(marker_coordinates, axis=1, dtype=np.int32)[0]
+
+        if angle:
+            print(f'Angle: {angle},\n\
+                    angle + 90: {angle + np.pi / 2},\n\
+                    detected curve: {movement_controller.detect_curve(angle)}')
+
+            x1, y1 = center_point[0], center_point[1]
+            angle += np.pi / 2
+            x2, y2 = int(np.cos(angle) * 100)+x1, int(np.sin(angle) * 100)+y1
+            
+            # Draw an arrow
+#            cv.arrowedLine(frame, (x2, y2), (x1, y1), (0, 255, 0), 2)
+
+    # print(f'Detected curve {movement_controller.detect_curve(angle)}')
 
     if key_handler[key.RETURN]:
         # Save frame as png
