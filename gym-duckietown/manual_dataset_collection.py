@@ -65,7 +65,7 @@ def get_latest_image_id():
     # Get latest image id
     latest_image_id = -1
     for image_name in images_names:
-        image_id = int(image_name.split(".")[0])
+        image_id = int((image_name.split(".")[0]).split("_")[0])
         if image_id > latest_image_id:
             latest_image_id = image_id
 
@@ -170,7 +170,7 @@ def write_label(class_id, relative_pos, relative_angle, bounding_box):
     else:
         label = f"{class_id} {' '.join(map(str, bounding_box))} {' '.join(map(str, relative_pos))} {relative_angle}"
 
-    with open(os.path.join(LABELS_PATH, str(current_image_id) + ".txt"), "w") as f:
+    with open(os.path.join(LABELS_PATH, str(current_image_id) + "_" + args.map_name + ".txt"), "w") as f:
         f.write(label)
 
 
@@ -212,7 +212,7 @@ def save_screenshot(obs):
 
     # Save image
     img = Image.fromarray(obs)
-    img.save(os.path.join(IMAGES_PATH, str(current_image_id) + ".png"))
+    img.save(os.path.join(IMAGES_PATH, str(current_image_id) + "_" + args.map_name + ".png"))
 
     # Increment image id
     current_image_id += 1
