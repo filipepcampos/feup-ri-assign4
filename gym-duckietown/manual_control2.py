@@ -116,8 +116,6 @@ def update(dt):
     This function is called at every frame to handle
     movement/stepping and redrawing
     """
-    wheel_distance = 0.102
-    min_rad = 0.08
 
     action = np.array([0.0, 0.0])
 
@@ -132,14 +130,16 @@ def update(dt):
     if key_handler[key.SPACE]:
         action = np.array([0, 0])
 
-    av1, v2 = movement_controller.adjust_speed(action)
+    v1, v2 = movement_controller.adjust_speed(action)
 
     # Speed boost
     if key_handler[key.LSHIFT]:
         action *= 1.5
 
-    obs, reward, done, info = env.step(action)
+
+    obs = env.render_obs()
     # print("step_count = %s, reward=%.3f" % (env.unwrapped.step_count, reward))
+    
 
     # dentro da função
     frame = cv.cvtColor(
@@ -151,78 +151,65 @@ def update(dt):
     # Convert to HSV
     converted = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
    
-    # Define masks
-    mask_white, mask_yellow, mask_red = edge_detector.define_masks(converted)
-    mask_white, mask_yellow, mask_red = edge_detector.erode_and_dilate((mask_white, mask_yellow, mask_red))
-
-    cv.imshow("mask_white", mask_white)
-    cv.imshow("mask_yellow", mask_yellow)
-    cv.imshow("mask_red", mask_red)
-
-    # Get lanes by detecting edges 
-    edges_white, edges_yellow, edges_red = edge_detector.detect_edges((mask_white, mask_yellow, mask_red))   
-
-    cv.imshow("edges_white", edges_white)
-    cv.imshow("edges_yellow", edges_yellow)
-    cv.imshow("edges_red", edges_red)
-
-    # Get lines from edges
-    white_lines, yellow_lines, red_lines = edge_detector.detect_lines((edges_white, edges_yellow, edges_red), 
-                                                                      [10,50, 100])
-    
-    if white_lines is not None:
-        white_lines = edge_detector.remove_horizontal_lines(white_lines)
-    if red_lines is not None:
-        print("red lines")
-        red_lines = edge_detector.get_horizontal_lines(red_lines)
-
-    # Get the average line
-    if white_lines is not None:
-        white_line = edge_detector.get_average_line(white_lines)
-        edge_detector.draw_line(frame, white_line, (0, 0, 255))
-        white_angle = edge_detector.get_angle(white_line)
-    if yellow_lines is not None:
-        yellow_line = edge_detector.get_average_line(yellow_lines)
-        edge_detector.draw_line(frame, yellow_line[0], (255, 0, 0))
-        yellow_angle = edge_detector.get_angle(yellow_line[0])
-    if red_lines is not None:
-        red_line = edge_detector.get_average_line(red_lines)
-        edge_detector.draw_line(frame, red_line, (0, 255, 0))
-        movement_controller.at_intersection(red_line)
+    white_line, yellow_line, red_line = edge_detector.get_lines(converted, frame)
 
     cv.imshow("frame", frame)
     cv.waitKey(1)
     
-    corners, ids, rejected = aruco_detector.detectMarkers(frame)
-   
-   
+    corners, ids, _ = aruco_detector.detectMarkers(frame)
+    pose = aruco_detector.estimatePose(corners) if ids is not None else None
+    print("\n\n\n Aruco pose: ", pose)
 
-   # Draw markers
-    if ids is not None:
-        rvecs, tvecs = aruco_detector.estimatePose(corners)
-        angle = rvecs[0][2]
+    if pose is not None:
+        rvecs, tvecs = pose
+        aruco_angle = rvecs[0][2]
         distance = tvecs[0][2]
         
         cv.aruco.drawDetectedMarkers(frame, corners, ids)
-
-        # Draw line with angle
         marker_coordinates = corners[0]
-        # Get center_point
         center_point = np.mean(marker_coordinates, axis=1, dtype=np.int32)[0]
 
-        if angle:
-            print(f'Angle: {angle},\n\
-                    angle + 90: {angle + np.pi / 2},\n\
-                    detected curve: {movement_controller.detect_curve(angle)}')
-
+        if aruco_angle is not None:
             x1, y1 = center_point[0], center_point[1]
-            angle += np.pi / 2
-            x2, y2 = int(np.cos(angle) * 100)+x1, int(np.sin(angle) * 100)+y1
+            aruco_angle += np.pi / 2
+            x2, y2 = int(np.cos(aruco_angle) * 100)+x1, int(np.sin(aruco_angle) * 100)+y1
             
+            movement_controller.detect_curve(aruco_angle)
+
             # Draw an arrow
 #            cv.arrowedLine(frame, (x2, y2), (x1, y1), (0, 255, 0), 2)
 
-    # print(f'Detected curve {movement_controller.detect_curve(angle)}')
+   # print(f'Angle: {aruco_angle},\n\
+   #     angle + 90: {aruco_angle + np.pi / 2},\n\
+   #     detected curve: {movement_controller.detect_curve(aruco_angle)}')
+
+
+    if movement_controller.at_intersection(red_line):
+        print("At intersection - deliberate action")
+    elif movement_controller.in_lane(white_line, yellow_line): 
+        print("In lane - following lane")
+    elif movement_controller.is_taking_action():
+        print("Taking action - following curve or going straight")
+
+    line_info = None
+    white_angle = None
+    yellow_angle = None
+    if white_line is not None: 
+        white_angle = edge_detector.get_angle(white_line)
+
+    if yellow_line is not None:
+        yellow_line = yellow_line[0]
+        yellow_angle = edge_detector.get_angle(yellow_line)
+
+    line_info = (white_line, white_angle), (yellow_line, yellow_angle)
+     
+
+    bot_action = movement_controller.move(pose, line_info)
+#    print(f'Bot move: {bot_action[0]}, {bot_action[1]}')
+
+    user_control = np.array([v1, v2])
+    _, _, done, _ = env.step(bot_action)
+
 
     if key_handler[key.RETURN]:
         # Save frame as png

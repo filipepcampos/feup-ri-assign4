@@ -13,3 +13,5 @@ pyyaml>=3.11
 dataclasses<=0.6; python_version < '3.7'
 carnivalmirror==0.6.2
 pipdeptree
+
+simple-pid==2.0.0
