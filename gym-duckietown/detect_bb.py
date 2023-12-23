@@ -3,11 +3,11 @@ import numpy as np
 
 # 0: yellow (duckie), 1: red (duckiebot)
 LOWER_COLORS = [
-    np.array([20, 230, 60]),
+    np.array([20, 230, 120]),
     np.array([0, 230, 60]),
 ]
 UPPER_COLORS = [
-    np.array([30, 255, 150]),
+    np.array([30, 255, 255]),
     np.array([10, 255, 150]),
 ]
 
@@ -28,8 +28,8 @@ def apply_morphology(thresh, class_id):
     kernel = np.ones((3, 3), np.uint8)
 
     if class_id == 0:
-        opening = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel, iterations=2)
-        closing = cv2.morphologyEx(opening, cv2.MORPH_CLOSE, kernel, iterations=2)
+        opening = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel, iterations=1)
+        closing = cv2.morphologyEx(opening, cv2.MORPH_CLOSE, kernel, iterations=1)
     elif class_id == 1:
         closing = cv2.dilate(thresh, kernel, iterations=2)
     return closing
