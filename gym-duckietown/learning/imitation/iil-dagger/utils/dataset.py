@@ -31,9 +31,17 @@ class MemoryMapDataset(Dataset):
         self.target_path = os.path.join(path, "target.dat")
 
         # Create arrays
-        self.data = np.memmap(self.data_path, dtype="float32", mode="w+", shape=(self.size, *self.data_size))
+        self.data = np.memmap(
+            self.data_path,
+            dtype="float32",
+            mode="w+",
+            shape=(self.size, *self.data_size),
+        )
         self.target = np.memmap(
-            self.target_path, dtype="float32", mode="w+", shape=(self.size, *self.target_size)
+            self.target_path,
+            dtype="float32",
+            mode="w+",
+            shape=(self.size, *self.target_size),
         )
 
         # Initialize number of saved records to zero

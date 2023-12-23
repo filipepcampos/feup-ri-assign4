@@ -166,6 +166,10 @@ def on_key_press(symbol, modifiers):
 key_handler = key.KeyStateHandler()
 env.unwrapped.window.push_handlers(key_handler)
 
+from collections import deque
+previous_angles = deque(maxlen=10)
+previous_white_lines = deque(maxlen=5)
+previous_yellow_lines = deque(maxlen=5)
 
 def update(dt):
     """
@@ -215,54 +219,78 @@ def update(dt):
     )  # conversão PIL para OPENCV https://stackoverflow.com/questions/14134892/convert-image-from-pil-to-opencv-format, don't ask me
 
     # TODO:
-    # Remove colors which are not yellow or white
-    # Convert to HSV
-    converted = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
-    # Define color ranges
-    lower_white, upper_white = np.array([0, 0, 200]), np.array([175, 175, 255])
-    lower_yellow, upper_yellow = np.array([20, 100, 100]), np.array([30, 255, 255])
-    # Create masks
-    mask_white = cv.inRange(converted, lower_white, upper_white)
-    mask_yellow = cv.inRange(converted, lower_yellow, upper_yellow)
+    def detect_lanes(frame):
+        # Remove colors which are not yellow or white
+        # Convert to HSV
+        converted = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
+        # Define color ranges
+        lower_white, upper_white = np.array([0, 0, 200]), np.array([175, 175, 255])
+        lower_yellow, upper_yellow = np.array([15, 75, 75]), np.array([35, 255, 255])
+        # Create masks
+        mask_white = cv.inRange(converted, lower_white, upper_white)
+        mask_yellow = cv.inRange(converted, lower_yellow, upper_yellow)
 
-    # Erode and dilate masks
+        # Erode and dilate masks
+        erode_kernel = np.ones((5, 5), np.uint8)
+        dilate_kernel = np.ones((9, 9), np.uint8)
+        mask_white = cv.erode(mask_white, erode_kernel, iterations=2)
+        mask_yellow = cv.dilate(mask_yellow, dilate_kernel, iterations=1)
 
-    erode_kernel = np.ones((5, 5), np.uint8)
-    dilate_kernel = np.ones((9, 9), np.uint8)
-    mask_white = cv.erode(mask_white, erode_kernel, iterations=2)
-    mask_yellow = cv.erode(mask_yellow, erode_kernel, iterations=1)
-    mask_yellow = cv.dilate(mask_yellow, dilate_kernel, iterations=1)
+        # Get lanes by detecting edges
+        edges_white = cv.Canny(mask_white, 100, 200)
+        edges_yellow = cv.Canny(mask_yellow, 100, 200)
 
-    # Get lanes by detecting edges
-    edges_white = cv.Canny(mask_white, 100, 200)
-    edges_yellow = cv.Canny(mask_yellow, 100, 200)
+        # Get lines from edges
+        white_lines = cv.HoughLinesP(
+            edges_white, 1, np.pi / 180, 100, minLineLength=100, maxLineGap=5
+        )
+        yellow_lines = cv.HoughLinesP(
+            edges_yellow, 1, np.pi / 180, 100, minLineLength=30, maxLineGap=50
+        )
 
-    # Get lines from edges
-    white_lines = cv.HoughLinesP(
-        edges_white, 1, np.pi / 180, 100, minLineLength=100, maxLineGap=10
-    )
-    yellow_lines = cv.HoughLinesP(
-        edges_yellow, 1, np.pi / 180, 100, minLineLength=100, maxLineGap=50
-    )
+        # Remove horizontal lines
+        if white_lines is not None:
+            white_lines = white_lines[abs(white_lines[:, :, 1] - white_lines[:, :, 3]) > 50]
 
-    # Remove horizontal lines
-    if white_lines is not None:
-        white_lines = white_lines[abs(white_lines[:, :, 1] - white_lines[:, :, 3]) > 50]
+        # Remove yellow lines that are not near the bottom of the image
+        if yellow_lines is not None:
+            yellow_lines = yellow_lines[
+                yellow_lines[:, :, 1] > frame.shape[0] * 0.6
+            ]
 
-    # Get the average line
-    if white_lines is not None:
-        white_line = np.mean(white_lines, axis=0, dtype=np.int32)
-        x1, y1, x2, y2 = white_line
+        # Get the average line
+        white_line, yellow_line = None, None
+        if white_lines is not None and len(white_lines) > 0:
+            white_line = np.mean(white_lines, axis=0, dtype=np.int32)
+            x1, y1, x2, y2 = white_line
+        if yellow_lines is not None and len(yellow_lines) > 0:
+            yellow_line = np.mean(yellow_lines, axis=0, dtype=np.int32)
+            x1, y1, x2, y2 = yellow_line
+            # cv.line(frame, (x1, y1), (x2, y2), (255, 0, 0), 5)
+        return white_line, yellow_line
+    
+    white_line, yellow_line = detect_lanes(frame)
+    if white_line is not None:
+        previous_white_lines.append(white_line)
+    if yellow_line is not None:
+        previous_yellow_lines.append(yellow_line)
+    average_white_line = np.mean(previous_white_lines, axis=0, dtype=np.int32)
+    average_yellow_line = np.mean(previous_yellow_lines, axis=0, dtype=np.int32)
+
+    if white_line is not None:
+        x1, y1, x2, y2 = average_white_line
         cv.line(frame, (x1, y1), (x2, y2), (0, 0, 255), 5)
-        white_angle = np.arctan2(y2 - y1, x2 - x1) - np.pi / 2
-    if yellow_lines is not None:
-        yellow_line = np.mean(yellow_lines, axis=0, dtype=np.int32)
-        x1, y1, x2, y2 = yellow_line[0]
+    if yellow_line is not None:
+        x1, y1, x2, y2 = average_yellow_line
         cv.line(frame, (x1, y1), (x2, y2), (255, 0, 0), 5)
-        yellow_angle = np.arctan2(y2 - y1, x2 - x1) - np.pi / 2
 
     corners, ids, rejectedImgPoints = aruco_detector.detectMarkers(frame)
+
     angle = aruco_detector.estimateAngle(corners, ids)
+    
+    if angle is not None:
+        previous_angles.append(angle)
+    average_angle = np.mean(previous_angles)
 
     # Draw markers
     if ids is not None:
@@ -272,19 +300,18 @@ def update(dt):
         marker_coordinates = corners[0]
         # Get center_point
         center_point = np.mean(marker_coordinates, axis=1, dtype=np.int32)[0]
-        print(center_point)
 
         if angle:
             #x1, y1 = frame.shape[1] // 2, frame.shape[0] // 2
             x1, y1 = center_point[0], center_point[1]
             angle += np.pi / 2
-            x2, y2 = int(np.cos(angle) * 100)+x1, int(np.sin(angle) * 100)+y1
+            x2, y2 = int(np.cos(average_angle) * 100)+x1, int(np.sin(average_angle) * 100)+y1
             
             # Draw an arrow
             cv.arrowedLine(frame, (x2, y2), (x1, y1), (0, 255, 0), 2)
 
     if angle:
-        print(f"Angle: {angle}")
+        print(f"Angle: {angle}, Average: {np.mean(previous_angles)}")
     else:
         print(f"Not detected")
 

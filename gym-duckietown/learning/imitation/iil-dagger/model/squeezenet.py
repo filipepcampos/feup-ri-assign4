@@ -95,7 +95,9 @@ class Squeezenet(nn.Module):
         images, target = args
         prediction = self.forward(images)
         if self.num_outputs == 1:
-            loss = F.mse_loss(prediction, target[:, -1].reshape(-1, 1), reduction="mean")
+            loss = F.mse_loss(
+                prediction, target[:, -1].reshape(-1, 1), reduction="mean"
+            )
         else:
             loss_omega = F.mse_loss(prediction[:, 1], target[:, 1], reduction="mean")
             loss_v = F.mse_loss(prediction[:, 0], target[:, 0], reduction="mean")
@@ -130,6 +132,8 @@ if __name__ == "__main__":
     batch_size = 2
     img_size = (100, 80)
     model = Squeezenet()
-    input_image = torch.rand((batch_size, 3, img_size[0], img_size[1])).to(model._device)
+    input_image = torch.rand((batch_size, 3, img_size[0], img_size[1])).to(
+        model._device
+    )
     prediction = model.predict(input_image)
     assert list(prediction.shape) == [batch_size, model.num_outputs]

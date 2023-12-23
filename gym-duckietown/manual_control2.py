@@ -67,9 +67,8 @@ class ArucoDetector:
     ):
         self.dictionary = cv.aruco.getPredefinedDictionary(cv.aruco.DICT_4X4_250)
         self.parameters = cv.aruco.DetectorParameters()
-        self.parameters.minCornerDistanceRate = 0.01
-        self.parameters.minDistanceToBorder = 1
-        self.parameters.minMarkerPerimeterRate = 0.01
+        #self.parameters.maxErroneousBitsInBorderRate = 0.9
+
 
         self.detector = cv.aruco.ArucoDetector(self.dictionary, self.parameters)
 
@@ -80,8 +79,7 @@ class ArucoDetector:
         corners, ids, rejectedImgPoints = self.detector.detectMarkers(image)
         return corners, ids, rejectedImgPoints
 
-    def estimateAngle(self, image):
-        corners, ids, rejectedImgPoints = self.detectMarkers(image)
+    def estimateAngle(self, corners, ids):
         if ids is not None:
             rvecs, tvecs, trash = self.estimatePoseSingleMarkers(
                 corners, 0.05, self.camera_matrix, self.distortion_coefs
@@ -235,15 +233,9 @@ def update(dt):
     mask_yellow = cv.erode(mask_yellow, erode_kernel, iterations=1)
     mask_yellow = cv.dilate(mask_yellow, dilate_kernel, iterations=1)
 
-    cv.imshow("mask_white", mask_white)
-    cv.imshow("mask_yellow", mask_yellow)
-
     # Get lanes by detecting edges
     edges_white = cv.Canny(mask_white, 100, 200)
     edges_yellow = cv.Canny(mask_yellow, 100, 200)
-
-    cv.imshow("edges_white", edges_white)
-    cv.imshow("edges_yellow", edges_yellow)
 
     # Get lines from edges
     white_lines = cv.HoughLinesP(
@@ -269,9 +261,26 @@ def update(dt):
         cv.line(frame, (x1, y1), (x2, y2), (255, 0, 0), 5)
         yellow_angle = np.arctan2(y2 - y1, x2 - x1) - np.pi / 2
 
-    cv.imshow("frame", frame)
-    cv.waitKey(1)
-    angle = aruco_detector.estimateAngle(frame)
+    corners, ids, rejectedImgPoints = aruco_detector.detectMarkers(frame)
+    angle = aruco_detector.estimateAngle(corners, ids)
+
+    # Draw markers
+    if ids is not None:
+        cv.aruco.drawDetectedMarkers(frame, corners, ids)
+
+        # Draw line with angle
+        marker_coordinates = corners[0]
+        # Get center_point
+        center_point = np.mean(marker_coordinates, axis=1, dtype=np.int32)[0]
+
+        if angle:
+            #x1, y1 = frame.shape[1] // 2, frame.shape[0] // 2
+            x1, y1 = center_point[0], center_point[1]
+            angle += np.pi / 2
+            x2, y2 = int(np.cos(angle) * 100)+x1, int(np.sin(angle) * 100)+y1
+            
+            # Draw an arrow
+            cv.arrowedLine(frame, (x2, y2), (x1, y1), (0, 255, 0), 2)
 
     if angle:
         print(f"Angle: {angle}")
@@ -282,6 +291,10 @@ def update(dt):
         # Save frame as png
         frame = cv.cvtColor(obs, cv.COLOR_RGB2BGR)
         cv.imwrite("screen.png", frame)
+
+
+    cv.imshow("frame", frame)
+    cv.waitKey(1)
 
     if done:
         print("done!")

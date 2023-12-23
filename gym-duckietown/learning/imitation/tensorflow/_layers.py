@@ -4,7 +4,9 @@ L2_LAMBDA = 1e-04
 
 
 def _residual_block(x, size, dropout=False, dropout_prob=0.5, seed=None):
-    residual = tf.layers.batch_normalization(x)  # TODO: check if the defaults in Tf are the same as in Keras
+    residual = tf.layers.batch_normalization(
+        x
+    )  # TODO: check if the defaults in Tf are the same as in Keras
     residual = tf.nn.relu(residual)
     residual = tf.layers.conv2d(
         residual,
