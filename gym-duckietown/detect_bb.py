@@ -3,7 +3,7 @@ import numpy as np
 
 # 0: yellow (duckie), 1: red (duckiebot)
 LOWER_COLORS = [
-    np.array([20, 230, 120]),
+    np.array([20, 245, 125]),
     np.array([0, 230, 60]),
 ]
 UPPER_COLORS = [
