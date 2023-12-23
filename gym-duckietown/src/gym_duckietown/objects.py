@@ -243,10 +243,6 @@ class DuckiebotObj(WorldObj):
             msg = f"Cannot find closest point/tangent from {self.pos}, {self.angle} "
             raise Exception(msg)
         
-
-        print(self.pos)
-        print("AAAAAAAAAAAAAAAAAA")
-
         iterations = 0
         lookup_distance = self.follow_dist
         curve_point = None
@@ -439,7 +435,6 @@ class DuckieObj(WorldObj):
         angle_delta = self.wiggle * math.sin(48 * self.time)
         self.y_rot = (self.angle + angle_delta) * (180 / np.pi)
         self.obj_norm = generate_norm(self.obj_corners)
-        # print("now at pos", self.pos)
 
     def finish_walk(self):
         """

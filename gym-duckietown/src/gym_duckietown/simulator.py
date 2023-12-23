@@ -2204,7 +2204,6 @@ class Simulator(gym.Env):
         img_data.blit(0, 0, 0, width=WINDOW_WIDTH, height=WINDOW_HEIGHT)
 
         # Display position/state information
-        print(self.cur_pos, self.cur_angle)
         if mode != "free_cam":
             x, y, z = self.cur_pos
             self.text_label.text = (
