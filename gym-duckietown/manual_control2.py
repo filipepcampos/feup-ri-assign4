@@ -185,7 +185,7 @@ def update(dt):
 
 
     if movement_controller.at_intersection(red_line):
-        print("At intersection - deliberate action")
+        print("\n==============================AT INTERSECTION deliberate action")
     elif movement_controller.in_lane(white_line, yellow_line): 
         print("In lane - following lane")
     elif movement_controller.is_taking_action():

@@ -10,7 +10,7 @@ class EdgeDetector:
     def define_masks(self, frame):
         sensitivity = 40
         lower_white, upper_white = np.array([0, 0, 150]), np.array([175, 100, 255])
-        lower_yellow, upper_yellow = np.array([20, 100, 100]), np.array([30, 255, 255])
+        lower_yellow, upper_yellow = np.array([20, 50, 0]), np.array([50, 255, 255])
         # 356, 78, 92 as to be expected (170, 70, 50), Scalar(180, 255, 255)
         lower_red, upper_red = np.array([170, 70, 50]), np.array([180, 255, 255])
         mask_white = cv.inRange(frame, lower_white, upper_white)
