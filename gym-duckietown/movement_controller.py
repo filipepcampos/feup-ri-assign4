@@ -38,30 +38,24 @@ action_to_state = {
 }
 
 ROAD_TILE_SIZE =  0.61
-CURVE_LEFT_BEZIER = np.array([[[-0.20, 0, -0.50], [-0.20, 0, 0.00], [0.00, 0, 0.20], [0.50, 0, 0.20]], 
+CURVE_RIGHT_BEZIER = np.array([[[-0.20, 0, -0.50], [-0.20, 0, 0.00], [0.00, 0, 0.20], [0.50, 0, 0.20]], 
                         [[0.50, 0, -0.20],[0.30, 0, -0.20], [0.20, 0, -0.30],[0.20, 0, -0.50]]])
 
-CURVE_RIGHT_BEZIER = np.array([[[-0.20, 0, -0.50], [-0.20, 0, -0.20], [-0.30, 0, -0.20], [-0.50, 0, -0.20]],
-                        [[-0.50, 0, 0.20],[-0.30, 0, 0.20], [0.30, 0, 0.00],[0.20, 0, -0.50]]])
+CURVE_LEFT_BEZIER = np.array([[[-0.20, 0, -0.50], [-0.20, 0, -0.20], [-0.30, 0, -0.20], [-0.50, 0, -0.20]],
+                        [[0.2, 0, -0.5], [0.3, 0, 0.0], [-0.3, 0, 0.2], [-0.5, 0, 0.2]]])
+
+def bezier_curve(curve, timesteps): 
+    p0, p1, p2, p3 = curve[0], curve[1], curve[2], curve[3]
+    p = lambda t: (1 - t)**3 * p0 + 3 * (1 - t)**2 * t * p1 + 3 * (1 - t) * t**2 * p2 + t**3 * p3
+    return np.array([p(t) for t in np.linspace(0, 1, timesteps)])
 
 
-CURVE_LEFT_BEZIER = ROAD_TILE_SIZE * CURVE_LEFT_BEZIER
-CURVE_RIGHT_BEZIER = ROAD_TILE_SIZE * CURVE_RIGHT_BEZIER
+TURN_LEFT_STEPS = 200
+TURN_RIGHT_STEPS = 100
 
+left_curve_points = bezier_curve(CURVE_LEFT_BEZIER[0], TURN_LEFT_STEPS)
+right_curve_points = bezier_curve(CURVE_RIGHT_BEZIER[1], TURN_RIGHT_STEPS)
 
-def bezier_curve(curve, t):
-        middle_points = [np.array(np.mean([curve[0][i], curve[1][i]], axis=0)) for i in range(len(curve[0]) - 1)]
-        n = len(middle_points) - 1
-        result = np.zeros_like(middle_points)
-        for i, point in enumerate(middle_points):
-            result += np.array(point) * math.comb(n, i) * ((1 - t) ** (n - i)) * (t ** i)
-        return result
-    
-num_steps = 200
-left_curve_points = np.array([bezier_curve(CURVE_LEFT_BEZIER[0], t) for t in np.linspace(0, 1, num_steps)])
-right_curve_points = np.array([bezier_curve(CURVE_RIGHT_BEZIER[0], t) for t in np.linspace(0, 1, num_steps)])
-
-avg_points = lambda curve: np.array([np.mean([curve[0][i], curve[1][i]], axis=0) for i in range(len(curve[0]))])
 
 class ArucoMovementController:
     def __init__(self): 
@@ -72,8 +66,12 @@ class ArucoMovementController:
         self.current_speed = FORWARD_SPEED, 0.0
 
         self.action_queue = queue.Queue()
-        self.action_queue.put(Action.TURN_RIGHT)
         self.state = State.MOVING_IN_LANE
+
+        # DEBUG
+        self.action_queue.put(Action.TURN_LEFT)
+
+        
 
         self.action_step = 0
         self.safety_distance = 0.5
@@ -148,26 +146,22 @@ class ArucoMovementController:
         prev_move = curve[self.action_step - 1] if self.action_step > 0 else next_move
         
         print(f"Next move: {next_move}, Prev move: {prev_move}")
-            
-        angle = np.arctan2(next_move[1] - prev_move[1], next_move[0] - prev_move[0])
+        angle = math.atan2(next_move[2] - prev_move[2], next_move[0] - prev_move[0])
 
-        angle = - angle if curve_type == Action.TURN_RIGHT else angle 
+        angle = angle + np.pi if curve_type == Action.TURN_RIGHT else angle
 
-        v1, v2 = FORWARD_WITH_CAUTION_SPEED , FORWARD_WITH_CAUTION_SPEED * angle / (np.pi / 2.0)
-        # * np.sin(angle)
-        # , FORWARD_SPEED * angle / (np.pi / 2.0)
-        # (next_move[0] - prev_move[0]) * 10 #
+        v1, v2 = FORWARD_WITH_CAUTION_SPEED , FORWARD_SPEED * -np.cos(angle)  
+           
         print(f"Angle: {RAD_TO_DEG * angle}, V1: {v1}, V2: {v2}")
 
         self.action_step += 1
         print(f"Action step: {self.action_step}")
-        if self.action_step == num_steps: 
+        if self.action_step == len(curve) - 1:
             self.state = State.MOVING_IN_LANE
             self.action_step = 0
 
         return v1, v2
 
-    # LEFT is positive, RIGHT is negative
     def take_action(self):
         # TODO: 3way, 4way intersection
         print(f"CURRENT STATE: {self.state}")
@@ -176,7 +170,6 @@ class ArucoMovementController:
         elif self.state == State.CURVING_LEFT:
              return self.take_curve(Action.TURN_LEFT)
         elif self.state == State.CURVING_RIGHT:
-            print("\n\n\n\nCURVING RIGHT")
             return self.take_curve(Action.TURN_RIGHT)
         
         return 0, 0

@@ -24,10 +24,10 @@ class EdgeDetector:
         mask_white = cv.erode(mask_white, self.erode_kernel, iterations=2)
         mask_white = cv.dilate(mask_white, self.dilate_kernel, iterations=1)
 
-        cv.imwrite("mask_white.png", mask_white)
+        cv.imwrite("mask_white.png", mask_yellow)
 
 
-        mask_yellow = cv.erode(mask_yellow, self.erode_kernel, iterations=1)
+        mask_yellow = cv.erode(mask_yellow, self.erode_kernel, iterations=2)
         mask_yellow = cv.dilate(mask_yellow, self.dilate_kernel, iterations=1)
 
         mask_red = cv.erode(mask_red, self.erode_kernel, iterations=2)
