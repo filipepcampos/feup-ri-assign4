@@ -38,11 +38,20 @@ action_to_state = {
 }
 
 ROAD_TILE_SIZE =  0.61
-CURVE_RIGHT_BEZIER = np.array([[[-0.20, 0, -0.50], [-0.20, 0, 0.00], [0.00, 0, 0.20], [0.50, 0, 0.20]], 
-                        [[0.50, 0, -0.20],[0.30, 0, -0.20], [0.20, 0, -0.30],[0.20, 0, -0.50]]])
 
-CURVE_LEFT_BEZIER = np.array([[[-0.20, 0, -0.50], [-0.20, 0, -0.20], [-0.30, 0, -0.20], [-0.50, 0, -0.20]],
-                        [[0.2, 0, -0.5], [0.3, 0, 0.0], [-0.3, 0, 0.2], [-0.5, 0, 0.2]]])
+CURVE_RIGHT_BEZIER = np.array([[[-0.20, 0, -0.50],[-0.20, 0, 0.00], [0.00, 0, 0.20], [0.50, 0, 0.20],],
+                        [[0.50, 0, -0.20], [0.30, 0, -0.20],[0.20, 0, -0.30],[0.20, 0, -0.50]]])
+
+# original
+#CURVE_LEFT_BEZIER = np.array([[[-0.20, 0, -0.50],[-0.20, 0, -0.20], [-0.30, 0, -0.20], [-0.50, 0, -0.20],],
+#                        [[0.2, 0, -0.50], [0.3, 0, 0.0], [-0.3, 0, 0.20], [-0.5, 0, 0.2]]])
+
+CURVE_LEFT_BEZIER = np.array([[[-0.20, 0, -0.50],[-0.20, 0, -0.30], [-0.30, 0, -0.20], [-0.50, 0, -0.20],],
+                        [[0.2, 0, -0.50], [0.3, 0, 0.10], [0.1, 0, 0.30], [-0.5, 0, 0.4]]])
+
+avg_curve = lambda x, y: np.mean([x, y], axis=0)
+avg_weighted_curve = lambda x, y, w: np.average([x, y], axis=0, weights=[w, 1 - w])
+
 
 def bezier_curve(curve, timesteps): 
     p0, p1, p2, p3 = curve[0], curve[1], curve[2], curve[3]
@@ -51,9 +60,9 @@ def bezier_curve(curve, timesteps):
 
 
 TURN_LEFT_STEPS = 200
-TURN_RIGHT_STEPS = 100
+TURN_RIGHT_STEPS = 150
 
-left_curve_points = bezier_curve(CURVE_LEFT_BEZIER[0], TURN_LEFT_STEPS)
+left_curve_points = bezier_curve(avg_weighted_curve(CURVE_LEFT_BEZIER[0], CURVE_LEFT_BEZIER[1], 0.4), TURN_LEFT_STEPS)
 right_curve_points = bezier_curve(CURVE_RIGHT_BEZIER[1], TURN_RIGHT_STEPS)
 
 
@@ -70,8 +79,6 @@ class ArucoMovementController:
 
         # DEBUG
         self.action_queue.put(Action.TURN_LEFT)
-
-        
 
         self.action_step = 0
         self.safety_distance = 0.5
@@ -147,11 +154,9 @@ class ArucoMovementController:
         
         print(f"Next move: {next_move}, Prev move: {prev_move}")
         angle = math.atan2(next_move[2] - prev_move[2], next_move[0] - prev_move[0])
+        sg = -1 if curve_type == Action.TURN_LEFT else 1
 
-        angle = angle + np.pi if curve_type == Action.TURN_RIGHT else angle
-
-        v1, v2 = FORWARD_WITH_CAUTION_SPEED , FORWARD_SPEED * -np.cos(angle)  
-           
+        v1, v2 = FORWARD_WITH_CAUTION_SPEED, FORWARD_SPEED * np.cos(angle) * sg
         print(f"Angle: {RAD_TO_DEG * angle}, V1: {v1}, V2: {v2}")
 
         self.action_step += 1
