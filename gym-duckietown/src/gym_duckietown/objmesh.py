@@ -25,7 +25,9 @@ class MatInfo(TypedDict, total=False):
     map_Kd: str
 
 
-def get_mesh(mesh_name: str, segment: bool = False, change_materials: Dict[str, MatInfo] = None) -> "ObjMesh":
+def get_mesh(
+    mesh_name: str, segment: bool = False, change_materials: Dict[str, MatInfo] = None
+) -> "ObjMesh":
     """
     Load a mesh or used a cached version
     """
@@ -168,7 +170,9 @@ class ObjMesh:
             if mtl_name != cur_mtl:
                 if len(chunks) > 0:
                     chunks[-1]["end_idx"] = idx
-                chunks.append({"mtl": materials[mtl_name], "start_idx": idx, "end_idx": None})
+                chunks.append(
+                    {"mtl": materials[mtl_name], "start_idx": idx, "end_idx": None}
+                )
                 cur_mtl = mtl_name
         chunks[-1]["end_idx"] = len(faces)
 
@@ -261,7 +265,9 @@ class ObjMesh:
                 string,
             ):  # Dont care about having an awesome hash really, just want this to be deterministic
                 hashed = "".join([str(ord(char)) for char in string])
-                segment_into_color0 = [int(hashed[i : i + 3]) % 255 for i in range(0, len(hashed), 3)][:3]
+                segment_into_color0 = [
+                    int(hashed[i : i + 3]) % 255 for i in range(0, len(hashed), 3)
+                ][:3]
                 assert len(segment_into_color0) == 3
                 return segment_into_color0
 
@@ -273,7 +279,9 @@ class ObjMesh:
 
                 fn = cast(str, mtl["map_Kd"])
                 fn2 = get_resource_path(os.path.basename(fn))
-                texture = load_texture(fn2, segment=segment, segment_into_color=segment_into_color)
+                texture = load_texture(
+                    fn2, segment=segment, segment_into_color=segment_into_color
+                )
             else:
                 texture = None
                 if segment:
@@ -323,7 +331,6 @@ class ObjMesh:
         cur_mtl = None
 
         with open(mtl_path, "r") as mtl_file:
-
             # For each line of the input file
             for line in mtl_file:
                 line = line.rstrip(" \r\n")

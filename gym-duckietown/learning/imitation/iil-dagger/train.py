@@ -13,7 +13,10 @@ import os
 
 def launch_env(map_name, randomize_maps_on_reset=False, domain_rand=False):
     environment = DuckietownEnv(
-        domain_rand=domain_rand, max_steps=math.inf, map_name=map_name, randomize_maps_on_reset=False
+        domain_rand=domain_rand,
+        max_steps=math.inf,
+        map_name=map_name,
+        randomize_maps_on_reset=False,
     )
     return environment
 
@@ -56,7 +59,9 @@ if __name__ == "__main__":
     task_episode = config.episode
 
     model = Squeezenet(num_outputs=config.num_outputs, max_velocity=max_velocity)
-    policy_optimizer = torch.optim.Adam(model.parameters(), lr=learning_rates[config.learning_rate])
+    policy_optimizer = torch.optim.Adam(
+        model.parameters(), lr=learning_rates[config.learning_rate]
+    )
 
     dataset = MemoryMapDataset(25000, (3, *input_shape), (2,), config.save_path)
     learner = NeuralNetworkPolicy(

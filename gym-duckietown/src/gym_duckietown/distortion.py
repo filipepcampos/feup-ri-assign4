@@ -27,7 +27,13 @@ class Distortion:
         self.camera_matrix = np.reshape(camera_matrix, (3, 3))
 
         # distortion parameters - (k1, k2, t1, t2, k3)
-        distortion_coefs = [-0.2, 0.0305, 0.0005859930422629722, -0.0006697840226199427, 0]
+        distortion_coefs = [
+            -0.2,
+            0.0305,
+            0.0005859930422629722,
+            -0.0006697840226199427,
+            0,
+        ]
 
         self.distortion_coefs = np.reshape(distortion_coefs, (1, 5))
 
@@ -75,7 +81,9 @@ class Distortion:
         }
 
         # Create a ParameterSampler:
-        sampler = cm.ParameterSampler(ranges=ranges, cal_width=self.W, cal_height=self.H)
+        sampler = cm.ParameterSampler(
+            ranges=ranges, cal_width=self.W, cal_height=self.H
+        )
 
         # Get a calibration from sampler
         calibration = sampler.next()
@@ -230,7 +238,9 @@ class Distortion:
         def norm(_):
             return np.hypot(_[0], _[1])
 
-        deltas0 = [(i - R - 1, j - R - 1) for i, j in itertools.product(range(F), range(F))]
+        deltas0 = [
+            (i - R - 1, j - R - 1) for i, j in itertools.product(range(F), range(F))
+        ]
         deltas0 = [x for x in deltas0 if norm(x) <= R]
         deltas0.sort(key=norm)
 

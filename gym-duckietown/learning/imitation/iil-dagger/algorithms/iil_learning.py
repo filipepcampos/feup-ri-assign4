@@ -135,7 +135,9 @@ class InteractiveImitationLearning:
 
     def _optimize(self):
         if not (self.test):
-            self.learner.optimize(self._observations, self._expert_actions, self._episode)
+            self.learner.optimize(
+                self._observations, self._expert_actions, self._episode
+            )
             print("saving model")
             self.learner.save()
 

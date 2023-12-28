@@ -45,6 +45,14 @@ for map_name, filename in list_maps2().items():
     if "regress" not in filename:
         reg_map_env(map_name, filename)
 
-register(id="MultiMap-v0", entry_point="gym_duckietown.envs:MultiMapEnv", reward_threshold=400.0)
+register(
+    id="MultiMap-v0",
+    entry_point="gym_duckietown.envs:MultiMapEnv",
+    reward_threshold=400.0,
+)
 
-register(id="Duckiebot-v0", entry_point="gym_duckietown.envs:DuckiebotEnv", reward_threshold=400.0)
+register(
+    id="Duckiebot-v0",
+    entry_point="gym_duckietown.envs:DuckiebotEnv",
+    reward_threshold=400.0,
+)

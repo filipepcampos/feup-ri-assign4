@@ -15,7 +15,9 @@ class DAgger(InteractiveImitationLearning):
     """
 
     def __init__(self, env, teacher, learner, horizon, episodes, alpha=0.5, test=False):
-        InteractiveImitationLearning.__init__(self, env, teacher, learner, horizon, episodes, test)
+        InteractiveImitationLearning.__init__(
+            self, env, teacher, learner, horizon, episodes, test
+        )
         # expert decay
         self.p = alpha
         self.alpha = self.p
@@ -29,21 +31,31 @@ class DAgger(InteractiveImitationLearning):
         self.distance_limit = 0.12
 
     def _mix(self):
-        control_policy = np.random.choice(a=[self.teacher, self.learner], p=[self.alpha, 1.0 - self.alpha])
+        control_policy = np.random.choice(
+            a=[self.teacher, self.learner], p=[self.alpha, 1.0 - self.alpha]
+        )
         if self._found_obstacle:
             return self.teacher
         try:
-            lp = self.environment.get_lane_pos2(self.environment.cur_pos, self.environment.cur_angle)
+            lp = self.environment.get_lane_pos2(
+                self.environment.cur_pos, self.environment.cur_angle
+            )
         except:
             return control_policy
         if self.active_policy:
             # keep using tecaher untill duckiebot converges back on track
-            if not (abs(lp.dist) < self.convergence_distance and abs(lp.angle_rad) < self.convergence_angle):
+            if not (
+                abs(lp.dist) < self.convergence_distance
+                and abs(lp.angle_rad) < self.convergence_angle
+            ):
                 return self.teacher
         else:
             # in case we are using our learner and it started to diverge a lot we need to give
             # control back to the expert
-            if abs(lp.dist) > self.distance_limit or abs(lp.angle_rad) > self.angle_limit:
+            if (
+                abs(lp.dist) > self.distance_limit
+                or abs(lp.angle_rad) > self.angle_limit
+            ):
                 return self.teacher
         return control_policy
 

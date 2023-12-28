@@ -6,14 +6,25 @@ import numpy as np
 
 from utils.teacher import PurePursuitExpert
 from utils.env import launch_env
-from utils.wrappers import NormalizeWrapper, DtRewardWrapper, ActionWrapper, ResizeWrapper
+from utils.wrappers import (
+    NormalizeWrapper,
+    DtRewardWrapper,
+    ActionWrapper,
+    ResizeWrapper,
+)
 
 from imitation.tensorflow.model import TensorflowModel
 
 
 def _train(args):
-    print("Running Expert for {} Episodes of {} Steps".format(args.episodes, args.steps))
-    print("Training Learning for {} Epochs with Batch Size of {}".format(args.epochs, args.batch_size))
+    print(
+        "Running Expert for {} Episodes of {} Steps".format(args.episodes, args.steps)
+    )
+    print(
+        "Training Learning for {} Epochs with Batch Size of {}".format(
+            args.epochs, args.batch_size
+        )
+    )
 
     env = launch_env()
     env = ResizeWrapper(env)
@@ -74,13 +85,26 @@ def _train(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--seed", default=1234, type=int, help="Sets Gym, TF, and Numpy seeds")
-    parser.add_argument("--episodes", default=3, type=int, help="Number of epsiodes for experts")
-    parser.add_argument("--steps", default=50, type=int, help="Number of steps per episode")
-    parser.add_argument("--batch-size", default=32, type=int, help="Training batch size")
-    parser.add_argument("--epochs", default=1, type=int, help="Number of training epochs")
     parser.add_argument(
-        "--model-directory", default="imitation/tensorflow/models/", type=str, help="Where to save models"
+        "--seed", default=1234, type=int, help="Sets Gym, TF, and Numpy seeds"
+    )
+    parser.add_argument(
+        "--episodes", default=3, type=int, help="Number of epsiodes for experts"
+    )
+    parser.add_argument(
+        "--steps", default=50, type=int, help="Number of steps per episode"
+    )
+    parser.add_argument(
+        "--batch-size", default=32, type=int, help="Training batch size"
+    )
+    parser.add_argument(
+        "--epochs", default=1, type=int, help="Number of training epochs"
+    )
+    parser.add_argument(
+        "--model-directory",
+        default="imitation/tensorflow/models/",
+        type=str,
+        help="Where to save models",
     )
 
     args = parser.parse_args()
