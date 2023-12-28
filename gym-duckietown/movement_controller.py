@@ -37,7 +37,6 @@ action_to_state = {
     Action.STOP: State.STOPPED
 }
 
-ROAD_TILE_SIZE =  0.61
 
 CURVE_RIGHT_BEZIER = np.array([[[-0.20, 0, -0.50],[-0.20, 0, 0.00], [0.00, 0, 0.20], [0.50, 0, 0.20],],
                         [[0.50, 0, -0.20], [0.30, 0, -0.20],[0.20, 0, -0.30],[0.20, 0, -0.50]]])
@@ -84,9 +83,6 @@ class ArucoMovementController:
         self.safety_distance = 0.5
 
 
-        self.pid = PID(0.5, 0.1, 0.05, setpoint=0)
-
-
     def adjust_speed(self, movement):
         v1, v2 = movement[0], movement[1]
 
@@ -105,14 +101,18 @@ class ArucoMovementController:
         if self.action_step != 0: 
             return self.state
 
-        return State.GOING_FORWARD if self.action_queue.empty() else action_to_state[self.action_queue.get()]
+        if self.action_queue.empty():
+            return State.MOVING_IN_LANE
+
+        return action_to_state[self.action_queue.get()]
+
 
     def at_intersection(self, red_line): 
         if red_line is None:
             return False
 
         x1, _, x2, _ = red_line
-        is_intersection = abs(x1 - x2) > 300
+        is_intersection = abs(x1 - x2) > 300 # TODO: use area of the rectangle
 
         if self.action_step == 0 and is_intersection:
             self.state = self.deliberate_action()
@@ -136,14 +136,15 @@ class ArucoMovementController:
             x1, _, x2, _ = yellow_line[0]
             return x1 > FRAME_WIDTH / 3 or x2 > FRAME_WIDTH / 3
 
-        if white_line is not None and yellow_line is None:
-            x1, _, x2, _ = white_line
-            return x1 > 2 * FRAME_WIDTH / 3 or x2 > 2 * FRAME_WIDTH / 3
+#        if white_line is not None and yellow_line is None:
+#            x1, _, x2, _ = white_line
+#            return x1 > 2 * FRAME_WIDTH / 3 or x2 > 2 * FRAME_WIDTH / 3
         
-        x1, _, x2, _ = white_line
-        x3, _, x4, _ = yellow_line[0]
+#        x1, _, x2, _ = white_line
+#        x3, _, x4, _ = yellow_line[0]
 
-        return  abs(x1 - x3) < 450 and abs(x2 - x4) < 450
+#        return  abs(x1 - x3) < 450 and abs(x2 - x4) < 450
+        return True
 
     def take_curve(self, curve_type):
         # take the bezier curve and use it to move across 100 frames
@@ -218,43 +219,116 @@ class ArucoMovementController:
         return FORWARD_WITH_CAUTION_SPEED, 0.0
 
 
+#    def compute_lane_following_move(self, lines):
+#        white_line_info, yellow_line_info = lines
+#        white_line, white_angle = white_line_info
+#        yellow_line, yellow_angle = yellow_line_info
+#        
+#        white_line_reference =  0.873 # 0.873 # 0.785 # 50 degrees
+#        yellow_line_reference = 2.275 # 130 degrees
+#
+##        print(f"White angle: {RAD_TO_DEG * white_angle if white_angle is not None else None}\
+##                Yellow angle: {RAD_TO_DEG * yellow_angle if yellow_angle is not None else None}")
+#        
+#        dire = lambda x: "LEFT" if x > 0 else "RIGHT"
+##        line_length = lambda p1, p2: np.linalg.norm(np.array(p1) - np.array(p2))
+##        dist_to_pov = lambda line: FRAME_WIDTH - line[2]
+#        mean_correction = lambda x, y: np.mean([x, y])  # np.mean([abs(x), abs(y)]) * np.sign(x + y)
+#        
+#        correction = 0.0
+#        if white_angle is None and yellow_angle is None:
+#            return FORWARD_WITH_CAUTION_SPEED, 0.0   
+#
+#        if yellow_angle is not None and abs(abs(yellow_angle) - yellow_line_reference) > 0.1: 
+#            yellow_line_correction =  1.0 * (yellow_line_reference - abs(yellow_angle))  
+#            correction = yellow_line_correction             
+#            #print(f"Yellow line correction: {yellow_line_correction}, DIR: {dire(yellow_line_correction)}")
+#        if white_angle is not None and abs(abs(white_angle) - white_line_reference) > 0.1\
+#                and (yellow_angle is None or abs(yellow_angle) > abs(white_angle)):
+#            white_line_correction =  -1.0 * (white_line_reference - abs(white_angle))  
+#            correction = white_line_correction if correction == 0.0 else mean_correction(white_line_correction, correction)
+#            #print(f"White line correction: {white_line_correction}, DIR: {dire(white_line_correction)}")
+#       
+#        speed = FORWARD_SPEED/(3.0 + abs(correction))
+#        
+#        print(f"V1: {speed}, V2: {correction}, DIR: {dire(correction)}")
+#        self.current_speed = speed, correction
+#        return self.current_speed
+
+
+    def compute_line_side(self, line, color="white"):
+        x1, _, x2, _ = line
+        
+        # get percentage of line on the left side of the frame
+
+        p_left = (x1 - FRAME_WIDTH / 2) / (FRAME_WIDTH / 2)
+        p_right = (x2 - FRAME_WIDTH / 2) / (FRAME_WIDTH / 2)
+        # return 0 if p_left > p_right else 1
+    
+        if color == "white":
+            return 0 if (x1 < FRAME_WIDTH / 3 and x2 < FRAME_WIDTH / 3) else 1    
+        elif color == "yellow":
+           return 0 if (x1 < FRAME_WIDTH / 2 and x2 < FRAME_WIDTH / 2) else 1
+    
+
     def compute_lane_following_move(self, lines):
-        white_line_info, yellow_line_info = lines
-        white_line, white_angle = white_line_info
-        yellow_line, yellow_angle = yellow_line_info
-        
-        white_line_reference =  0.873 # 0.873 # 0.785 # 50 degrees
-        yellow_line_reference = 2.275 # 130 degrees
+            white_line_info, yellow_line_info = lines
+            white_line, white_angle = white_line_info
+            yellow_line, yellow_angle = yellow_line_info
 
-#        print(f"White angle: {RAD_TO_DEG * white_angle if white_angle is not None else None}\
-#                Yellow angle: {RAD_TO_DEG * yellow_angle if yellow_angle is not None else None}")
-        
-        dire = lambda x: "LEFT" if x > 0 else "RIGHT"
-#        line_length = lambda p1, p2: np.linalg.norm(np.array(p1) - np.array(p2))
-#        dist_to_pov = lambda line: FRAME_WIDTH - line[2]
-        mean_correction = lambda x, y: np.mean([x, y])  # np.mean([abs(x), abs(y)]) * np.sign(x + y)
-        
-        correction = 0.0
-        if white_angle is None and yellow_angle is None:
-            return FORWARD_WITH_CAUTION_SPEED, 0.0   
+            print(f"White angle: {RAD_TO_DEG * white_angle if white_angle is not None else None}\
+                    Yellow angle: {RAD_TO_DEG * yellow_angle if yellow_angle is not None else None}")
 
+            dire = lambda x: "LEFT" if x > 0 else "RIGHT"           
+            to_deg = lambda x: x * RAD_TO_DEG
+            
+            if white_line is None and yellow_line is None:
+                return FORWARD_WITH_CAUTION_SPEED, 0.0
+            
+            white_angle_correction = 0.0
+            if white_angle is not None: 
+                white_angle = white_angle if white_angle > 0 else np.pi/2 + abs(white_angle)
+                if self.compute_line_side(white_line, "white") == 0: # left
+                    print(f"line side: {self.compute_line_side(white_line, 'white')}, whitee line: {white_line}")
+                    white_angle_correction = -3.0
+                else:
+                    if 90 < (a := to_deg(white_angle)) <= 100:
+                        white_angle_correction = -1.5
+                    elif 100 < a <= 130:
+                        white_angle_correction = -0.5
+                   # elif 130 < a <= 135:
+                   #     white_angle_correction = 0.0
+                    elif 135 < a <= 180:
+                        white_angle_correction = 1.0
+                    elif a > 180:
+                        white_angle_correction = 2.0
+    
+            yellow_angle_correction = 0.0       
+            if yellow_angle is not None: 
+                yellow_angle = yellow_angle if yellow_angle > 0 else np.pi + yellow_angle
+                if self.compute_line_side(yellow_line, "yellow") == 1: # right 
+                    yellow_angle_correction = 3.0
+                else:
+                    if 0 < (a := to_deg(yellow_angle)) <= 30:
+                        yellow_angle_correction = -1.0
+                    elif 30 < a <= 50: 
+                        yellow_angle_correction = -1.0
+                   # elif 40 < a <= 45:
+                   #     yellow_angle_correction = 0.0
+                    elif 50 < a <= 90:
+                        yellow_angle_correction = 1.0
+                    elif a >= 90:
+                        yellow_angle_correction = 2.0
+    
+            print(f"White angle: {RAD_TO_DEG * white_angle if white_angle is not None else None}\
+                    Yellow angle: {RAD_TO_DEG * yellow_angle if yellow_angle is not None else None}")
 
-        if yellow_angle is not None and abs(abs(yellow_angle) - yellow_line_reference) > 0.1: 
-            yellow_line_correction =  1.0 * (yellow_line_reference - abs(yellow_angle))  
-            correction = yellow_line_correction             
-            #print(f"Yellow line correction: {yellow_line_correction}, DIR: {dire(yellow_line_correction)}")
-        if white_angle is not None and abs(abs(white_angle) - white_line_reference) > 0.1\
-                and (yellow_angle is None or abs(yellow_angle) > abs(white_angle)):
-            white_line_correction =  -1.0 * (white_line_reference - abs(white_angle))  
-            correction = white_line_correction if correction == 0.0 else mean_correction(white_line_correction, correction)
-            #print(f"White line correction: {white_line_correction}, DIR: {dire(white_line_correction)}")
-       
-        speed = FORWARD_SPEED/(3.0 + abs(correction))
-        
-        print(f"V1: {speed}, V2: {correction}, DIR: {dire(correction)}")
-        self.current_speed = speed, correction
+            new_dir = white_angle_correction + yellow_angle_correction
+            print(f"V1: {FORWARD_SPEED}, V2: {new_dir}, DIR: {dire(new_dir)}")
 
-        return self.current_speed
+            return 0.6 * FORWARD_SPEED, 0.6 * new_dir
+    
+    
 
     def move_in_lane(self, aruco_pose, lines): 
         if lines is None:
