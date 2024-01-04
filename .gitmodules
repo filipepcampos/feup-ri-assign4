@@ -1,0 +1,3 @@
+[submodule "gym-duckietown/feup-ri-assign4-model"]
+	path = gym-duckietown/feup-ri-assign4-model
+	url = git@github.com:filipepcampos/feup-ri-assign4-model.git
