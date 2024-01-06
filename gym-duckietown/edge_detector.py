@@ -9,7 +9,7 @@ class EdgeDetector:
         
     def define_masks(self, frame):
         lower_white, upper_white = np.array([0, 0, 100]), np.array([170, 40, 255])
-        lower_yellow, upper_yellow = np.array([20, 50, 100]), np.array([50, 255, 255])
+        lower_yellow, upper_yellow = np.array([20, 30, 80]), np.array([50, 255, 255])
         # 356, 78, 92 as to be expected (170, 70, 50), Scalar(180, 255, 255)
         lower_red, upper_red = np.array([170, 70, 50]), np.array([180, 255, 255])
         mask_white = cv.inRange(frame, lower_white, upper_white)
@@ -44,7 +44,7 @@ class EdgeDetector:
         white_edges, yellow_edges, red_edges = colored_edges
 
         lines = lambda edges, maxLineGap: cv.HoughLinesP(
-            edges, 1, np.pi / 180, 100, minLineLength=70, maxLineGap=maxLineGap
+            edges, 1, np.pi / 180, 100, minLineLength=10, maxLineGap=maxLineGap
         )
 
         return lines(white_edges, maxLineGaps[0]), \
@@ -110,6 +110,7 @@ class EdgeDetector:
               self.draw_line(frame, white_line, (0, 0, 255))
           if yellow_lines is not None:
               yellow_line = self.get_average_line(yellow_lines)
+              print("Avg lines", yellow_line)
               self.draw_line(frame, yellow_line[0], (255, 0, 0))
           if red_lines is not None and len(red_lines) > 0:
               #red_line = self.get_average_line(red_lines)

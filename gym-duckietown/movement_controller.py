@@ -37,32 +37,70 @@ action_to_state = {
     Action.STOP: State.STOPPED
 }
 
+# np.array([[[0.5, 0, 0.2], [0.0, 0, 0.2], [-0.2, 0, 0.0], [-0.2, 0, -0.5]], 
+
+
+#CURVE_RIGHT_BEZIER = np.array([[[-0.20, 0, -0.50],[-0.20, 0, 0.00], [0.00, 0, 0.20], [0.50, 0, 0.20],],
+#                        [[0.50, 0, -0.20], [0.30, 0, -0.20],[0.20, 0, -0.30],[0.20, 0, -0.50]]])
+
+
 
 CURVE_RIGHT_BEZIER = np.array([[[-0.20, 0, -0.50],[-0.20, 0, 0.00], [0.00, 0, 0.20], [0.50, 0, 0.20],],
-                        [[0.50, 0, -0.20], [0.30, 0, -0.20],[0.20, 0, -0.30],[0.20, 0, -0.50]]])
+#                        [[0.50, 0, -0.25], [0.30, 0, -0.15],[0.20, 0, -0.30],[0.20, 0, -0.50]]])
+                        [[0.2, 0, -0.50], [0.2, 0, -0.30], [0.3, 0, -0.15], [0.5, 0, -0.25]]])
 
 # original
-#CURVE_LEFT_BEZIER = np.array([[[-0.20, 0, -0.50],[-0.20, 0, -0.20], [-0.30, 0, -0.20], [-0.50, 0, -0.20],],
-#                        [[0.2, 0, -0.50], [0.3, 0, 0.0], [-0.3, 0, 0.20], [-0.5, 0, 0.2]]])
+CURVE_LEFT_BEZIER = np.array([[[-0.20, 0, -0.50],[-0.20, 0, -0.20], [-0.30, 0, -0.20], [-0.50, 0, -0.10],],
+                        [[0.2, 0, -0.50], [0.3, 0, 0.0], [-0.3, 0, 0.20], [-0.5, 0, 0.2]]])
 
-CURVE_LEFT_BEZIER = np.array([[[-0.20, 0, -0.50],[-0.20, 0, -0.30], [-0.30, 0, -0.20], [-0.50, 0, -0.20],],
-                        [[0.2, 0, -0.50], [0.3, 0, 0.10], [0.1, 0, 0.30], [-0.5, 0, 0.4]]])
+#CURVE_LEFT_BEZIER = np.array([[[-0.20, 0, -0.50],[-0.20, 0, -0.30], [-0.30, 0, -0.20], [-0.50, 0, -0.20],],
+#                        [[0.2, 0, -0.50], [0.3, 0, 0.10], [0.1, 0, 0.30], [-0.5, 0, 0.4]]])
 
 avg_curve = lambda x, y: np.mean([x, y], axis=0)
 avg_weighted_curve = lambda x, y, w: np.average([x, y], axis=0, weights=[w, 1 - w])
 
 
-def bezier_curve(curve, timesteps): 
+def bezier_curve_with_straight_ending(curve, timesteps, direction="left"):
     p0, p1, p2, p3 = curve[0], curve[1], curve[2], curve[3]
     p = lambda t: (1 - t)**3 * p0 + 3 * (1 - t)**2 * t * p1 + 3 * (1 - t) * t**2 * p2 + t**3 * p3
+    
+    # describe the curve until 0.8 of the total time
+    curve_timesteps = int(0.8 * timesteps)
+    curve_points = np.array([p(t) for t in np.linspace(0, 1, curve_timesteps)])
+
+    # describe a straight line in 0.2 of the total time 
+    first_point = curve_points[-1]
+    direction = -1 if direction == "left" else 1
+    straight_points = np.array([(first_point[0] + direction * i, 0, first_point[2]) for i in range(timesteps - curve_timesteps)])
+
+    return np.concatenate((curve_points, straight_points))
+    
+def bezier_curve(curve, timesteps):
+    p0, p1, p2, p3 = curve[0], curve[1], curve[2], curve[3]
+    p = lambda t: (1 - t)**3 * p0 + 3 * (1 - t)**2 * t * p1 + 3 * (1 - t) * t**2 * p2 + t**3 * p3
+    
     return np.array([p(t) for t in np.linspace(0, 1, timesteps)])
 
 
-TURN_LEFT_STEPS = 200
-TURN_RIGHT_STEPS = 150
+def bezier_curve_derivative(curve, timesteps):
+    p0, p1, p2, p3 = curve[0], curve[1], curve[2], curve[3]
+    p_prime = lambda t: 3 * (1 - t)**2 * (p1 - p0) + 6 * (1 - t) * t * (p2 - p1) + 3 * t**2 * (p3 - p2)
+    
+    return np.array([p_prime(t) for t in np.linspace(0, 1, timesteps)])
 
-left_curve_points = bezier_curve(avg_weighted_curve(CURVE_LEFT_BEZIER[0], CURVE_LEFT_BEZIER[1], 0.4), TURN_LEFT_STEPS)
-right_curve_points = bezier_curve(CURVE_RIGHT_BEZIER[1], TURN_RIGHT_STEPS)
+
+
+
+TURN_LEFT_STEPS = 275
+TURN_RIGHT_STEPS = 200
+
+
+#left_curve_points = bezier_curve(avg_weighted_curve(CURVE_LEFT_BEZIER[0], CURVE_LEFT_BEZIER[1], 0.4), TURN_LEFT_STEPS, "left")
+left_curve_points = bezier_curve_with_straight_ending(CURVE_LEFT_BEZIER[0], TURN_LEFT_STEPS, "left")
+right_curve_points = bezier_curve(CURVE_RIGHT_BEZIER[0], TURN_RIGHT_STEPS)
+
+left_curve_derivative = bezier_curve_derivative(CURVE_LEFT_BEZIER[0], TURN_LEFT_STEPS)
+right_curve_derivative = bezier_curve_derivative(CURVE_RIGHT_BEZIER[1], TURN_RIGHT_STEPS)
 
 
 class ArucoMovementController:
@@ -78,6 +116,7 @@ class ArucoMovementController:
 
         # DEBUG
         self.action_queue.put(Action.TURN_LEFT)
+        self.action_queue.put(Action.TURN_RIGHT)
 
         self.action_step = 0
         self.safety_distance = 0.5
@@ -148,25 +187,32 @@ class ArucoMovementController:
 
     def take_curve(self, curve_type):
         # take the bezier curve and use it to move across 100 frames
-        curve = left_curve_points if curve_type == Action.TURN_LEFT else right_curve_points
+       curve = left_curve_points if curve_type == Action.TURN_LEFT else right_curve_points
 
-        next_move = curve[self.action_step]
-        prev_move = curve[self.action_step - 1] if self.action_step > 0 else next_move
-        
-        print(f"Next move: {next_move}, Prev move: {prev_move}")
-        angle = math.atan2(next_move[2] - prev_move[2], next_move[0] - prev_move[0])
-        sg = -1 if curve_type == Action.TURN_LEFT else 1
+#        curve_derivative = left_curve_derivative if curve_type == Action.TURN_LEFT else right_curve_derivative
 
-        v1, v2 = FORWARD_WITH_CAUTION_SPEED, FORWARD_SPEED * np.cos(angle) * sg
-        print(f"Angle: {RAD_TO_DEG * angle}, V1: {v1}, V2: {v2}")
 
-        self.action_step += 1
-        print(f"Action step: {self.action_step}")
-        if self.action_step == len(curve) - 1:
-            self.state = State.MOVING_IN_LANE
-            self.action_step = 0
+       next_move = curve[self.action_step]
+       prev_move = curve[self.action_step - 1] if self.action_step > 0 else next_move
+       
+       print(f"Next move: {next_move}, Prev move: {prev_move}")
+       angle = math.atan2(next_move[2] - prev_move[2], next_move[0] - prev_move[0])
+       sg = 1 if curve_type == Action.TURN_LEFT else -1
+       
+       v1 = 0.1 # curve_derivative[self.action_step][0] * FORWARD_SPEED
+       v2 = (FORWARD_SPEED) * abs(np.cos(angle)) * sg * (1.0 if curve_type == Action.TURN_LEFT else 1.9)
+#       v2 = (FORWARD_SPEED * 1.2) * sg * abs(curve_derivative[self.action_step][2]) 
+       print(f"Angle: {RAD_TO_DEG * angle}, V1: {v1}, V2: {v2}")
 
-        return v1, v2
+#       print(f"V1: {v1}, V2: {v2}, curve_derivative: {curve_derivative[self.action_step]}")
+
+       self.action_step += 1
+       print(f"Action step: {self.action_step}")
+       if self.action_step == len(curve):
+           self.state = State.MOVING_IN_LANE
+           self.action_step = 0
+
+       return v1, v2
 
     def take_action(self):
         # TODO: 3way, 4way intersection
@@ -293,15 +339,17 @@ class ArucoMovementController:
                     white_angle_correction = -3.0
                 else:
                     if 90 < (a := to_deg(white_angle)) <= 100:
-                        white_angle_correction = -1.5
-                    elif 100 < a <= 130:
-                        white_angle_correction = -0.5
+                        white_angle_correction = -1.5 if yellow_line is not None else 1.5
+                    elif 100 < a <= 125:
+                        white_angle_correction = -0.5 if yellow_line is not None else 1.5
                    # elif 130 < a <= 135:
                    #     white_angle_correction = 0.0
-                    elif 135 < a <= 180:
+                    elif 125 < a <= 170:
                         white_angle_correction = 1.0
-                    elif a > 180:
+                    elif 170 < a <= 180:
                         white_angle_correction = 2.0
+                    elif a > 180:
+                        white_angle_correction = 3.0
     
             yellow_angle_correction = 0.0       
             if yellow_angle is not None: 
@@ -310,15 +358,15 @@ class ArucoMovementController:
                     yellow_angle_correction = 3.0
                 else:
                     if 0 < (a := to_deg(yellow_angle)) <= 30:
-                        yellow_angle_correction = -1.0
+                        yellow_angle_correction = -0.5 if white_line is not None else -1.0
                     elif 30 < a <= 50: 
                         yellow_angle_correction = -1.0
                    # elif 40 < a <= 45:
                    #     yellow_angle_correction = 0.0
                     elif 50 < a <= 90:
-                        yellow_angle_correction = 1.0
+                        yellow_angle_correction = 1.0 if white_line is not None else -0.5
                     elif a >= 90:
-                        yellow_angle_correction = 2.0
+                        yellow_angle_correction = 2.0 if white_line is not None else -0.5
     
             print(f"White angle: {RAD_TO_DEG * white_angle if white_angle is not None else None}\
                     Yellow angle: {RAD_TO_DEG * yellow_angle if yellow_angle is not None else None}")
@@ -338,7 +386,7 @@ class ArucoMovementController:
         lane_move = self.compute_lane_following_move(lines)
 #         move = np.mean([aruco_move, lane_move], axis=0)
         
-        return self.adjust_speed(lane_move)
+        return lane_move
 
 
     def move(self, aruco_pose, lines): 
@@ -347,7 +395,9 @@ class ArucoMovementController:
         
         if self.state == State.MOVING_IN_LANE: 
             v1, v2 = self.move_in_lane(aruco_pose, lines)
+            v1, v2 = self.adjust_speed((v1, v2))
         else: 
             v1, v2 = self.take_action()
 
-        return self.adjust_speed((v1, v2))      
+#        return self.adjust_speed((v1, v2))      
+        return v1, v2
