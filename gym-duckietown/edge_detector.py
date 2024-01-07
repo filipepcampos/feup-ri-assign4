@@ -94,6 +94,8 @@ class EdgeDetector:
           white_lines, yellow_lines, red_lines = self.detect_lines((edges_white, edges_yellow, edges_red), 
                                                                             [10,100, 100])
           
+          if white_lines is not None and len(self.remove_horizontal_lines(white_lines)) > 0:
+              white_lines = [self.remove_horizontal_lines(white_lines)]
          # if white_lines is not None:
          #     print("First White Lines", white_lines)
          #     print(white_lines[0])
@@ -107,11 +109,9 @@ class EdgeDetector:
           red_line = None
             
           # Get the average line
-          if white_lines is not None:
-              print("After Horizontal lines removal", white_lines)
+          if white_lines is not None: # or len(white_lines) > 0:
               white_line = self.get_average_line(white_lines)[0]
               # white_line = white_lines[0][0]
-              print("Avg lines", white_line)
               self.draw_line(frame, white_line, (0, 0, 255))
           if yellow_lines is not None:
               yellow_line = self.get_average_line(yellow_lines)
