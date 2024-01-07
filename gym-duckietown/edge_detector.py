@@ -9,7 +9,8 @@ class EdgeDetector:
         
     def define_masks(self, frame):
         lower_white, upper_white = np.array([0, 0, 100]), np.array([170, 40, 255])
-        lower_yellow, upper_yellow = np.array([20, 30, 80]), np.array([50, 255, 255])
+        # lower_yellow, upper_yellow = np.array([20, 30, 80]), np.array([50, 255, 255])
+        lower_yellow, upper_yellow = np.array([20, 30, 65]), np.array([60, 255, 255])
         # 356, 78, 92 as to be expected (170, 70, 50), Scalar(180, 255, 255)
         lower_red, upper_red = np.array([170, 70, 50]), np.array([180, 255, 255])
         mask_white = cv.inRange(frame, lower_white, upper_white)
@@ -23,7 +24,7 @@ class EdgeDetector:
         mask_white = cv.erode(mask_white, self.erode_kernel, iterations=2)
         mask_white = cv.dilate(mask_white, self.dilate_kernel, iterations=1)
 
-        mask_yellow = cv.erode(mask_yellow, self.erode_kernel, iterations=2)
+        mask_yellow = cv.erode(mask_yellow, self.erode_kernel, iterations=1)
         mask_yellow = cv.dilate(mask_yellow, self.dilate_kernel, iterations=1)
 
         mask_red = cv.erode(mask_red, self.erode_kernel, iterations=2)
@@ -39,12 +40,12 @@ class EdgeDetector:
          edges_red = cv.Canny(mask_red, 100, 200)
          return edges_white, edges_yellow, edges_red
 
-    def detect_lines(self, colored_edges, maxLineGaps): 
+    def detect_lines(self, colored_edges, maxLineGaps, minLineLength=10): 
         # Get lines from edges
         white_edges, yellow_edges, red_edges = colored_edges
 
         lines = lambda edges, maxLineGap: cv.HoughLinesP(
-            edges, 1, np.pi / 180, 100, minLineLength=10, maxLineGap=maxLineGap
+            edges, 1, np.pi / 180, 100, minLineLength=minLineLength, maxLineGap=maxLineGap
         )
 
         return lines(white_edges, maxLineGaps[0]), \
@@ -72,6 +73,7 @@ class EdgeDetector:
     def get_lines(self,converted, frame): 
          # Define masks
           mask_white, mask_yellow, mask_red = self.define_masks(converted)
+          cv.imwrite("mask_yellow_before_erode.png", mask_yellow)
           mask_white, mask_yellow, mask_red = self.erode_and_dilate((mask_white, mask_yellow, mask_red))
                                                                                                                      
           cv.imshow("mask_white", mask_white)
@@ -85,6 +87,11 @@ class EdgeDetector:
 
 
           cv.imshow("edges_yellow", edges_yellow)
+
+
+          cv.imwrite("edges_yellow.png", edges_yellow)
+          cv.imwrite("mask_yellow.png", mask_yellow)
+
           cv.imshow("edges_red", edges_red)
           
           # make half of the edges_white image black
