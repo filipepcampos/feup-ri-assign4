@@ -82,8 +82,13 @@ class EdgeDetector:
           edges_white, edges_yellow, edges_red = self.detect_edges((mask_white, mask_yellow, mask_red))   
                                                                                                                      
           cv.imshow("edges_white", edges_white)
+
+
           cv.imshow("edges_yellow", edges_yellow)
           cv.imshow("edges_red", edges_red)
+          
+          # make half of the edges_white image black
+          edges_white[:, 0:edges_white.shape[1]//3] = 0
                                                                                                                      
           # Get lines from edges
           white_lines, yellow_lines, red_lines = self.detect_lines((edges_white, edges_yellow, edges_red), 
@@ -116,6 +121,7 @@ class EdgeDetector:
               #red_line = self.get_average_line(red_lines)
               red_line = red_lines[0]
               self.draw_line(frame, red_line, (0, 255, 0))
+
 
           return white_line, yellow_line, red_line
 

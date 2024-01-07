@@ -8,6 +8,7 @@ using the keyboard arrows.
 from PIL import Image
 import argparse
 import sys
+from collections import deque
 
 import gym
 import numpy as np
@@ -19,9 +20,9 @@ from enum import Enum
 from gym_duckietown.envs import DuckietownEnv
 # from experiments.utils import save_img
 
-from aruco_detector import ArucoDetector
 from edge_detector import EdgeDetector
-from movement_controller import ArucoMovementController
+from lib.movement_controller import ArucoMovementController
+from lib.guide_detect import ArUcoBotDetector
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--env-name", default=None)
@@ -63,16 +64,6 @@ else:
     env = gym.make(args.env_name)
 
 
-aruco_detector = ArucoDetector(
-    np.array(
-        [
-            [305.5718893575089, 0, 303.0797142544728],
-            [0, 308.8338858195428, 231.8845403702499],
-            [0, 0, 1],
-        ]
-    ),
-    np.array([-0.2, 0.0305, 0.0005859930422629722, -0.0006697840226199427, 0]),
-)
 
 env.reset()
 env.render()
@@ -109,7 +100,12 @@ env.unwrapped.window.push_handlers(key_handler)
 
 
 edge_detector = EdgeDetector()
-movement_controller = ArucoMovementController()
+guide_bot_detector = ArUcoBotDetector()
+movement_controller = ArucoMovementController(guide_bot_detector=guide_bot_detector)
+
+white_line_history = deque(maxlen=4)
+yellow_line_history = deque(maxlen=4)
+
 
 def update(dt):
     """
@@ -130,16 +126,15 @@ def update(dt):
     if key_handler[key.SPACE]:
         action = np.array([0, 0])
 
-    v1, v2 = movement_controller.adjust_speed(action)
+    v1, v2 = movement_controller.movement_actor.adjust_speed(action)
 
     # Speed boost
     if key_handler[key.LSHIFT]:
         action *= 1.5
 
 
+
     obs = env.render_obs()
-    # print("step_count = %s, reward=%.3f" % (env.unwrapped.step_count, reward))
-    
 
     # dentro da função
     frame = cv.cvtColor(
@@ -153,36 +148,21 @@ def update(dt):
    
     white_line, yellow_line, red_line = edge_detector.get_lines(converted, frame)
 
+    
+    # white_line_history.append(white_line)
+    # white_line = np.mean(white_line_history, axis=0)
+    # yellow_line_history.append(yellow_line)
+
+    # if len([i for i in yellow_line_history if i is not None]) < len(yellow_line_history):
+    #     yellow_line = None
+    # else:
+    #     yellow_line = np.mean(yellow_line_history, axis=0)
+
     cv.imshow("frame", frame)
     cv.waitKey(1)
     
-    corners, ids, _ = aruco_detector.detectMarkers(frame)
-    pose = aruco_detector.estimatePose(corners) if ids is not None else None
-    print("\n\n\n Aruco pose: ", pose)
-
-    if pose is not None:
-        rvecs, tvecs = pose
-        aruco_angle = rvecs[0][2]
-        distance = tvecs[0][2]
-        
-        cv.aruco.drawDetectedMarkers(frame, corners, ids)
-        marker_coordinates = corners[0]
-        center_point = np.mean(marker_coordinates, axis=1, dtype=np.int32)[0]
-
-        if aruco_angle is not None:
-            x1, y1 = center_point[0], center_point[1]
-            aruco_angle += np.pi / 2
-            x2, y2 = int(np.cos(aruco_angle) * 100)+x1, int(np.sin(aruco_angle) * 100)+y1
-            
-            movement_controller.detect_curve(aruco_angle)
-
-            # Draw an arrow
-#            cv.arrowedLine(frame, (x2, y2), (x1, y1), (0, 255, 0), 2)
-
-   # print(f'Angle: {aruco_angle},\n\
-   #     angle + 90: {aruco_angle + np.pi / 2},\n\
-   #     detected curve: {movement_controller.detect_curve(aruco_angle)}')
-
+    # ARUCO
+    guide_bot_detector.update(frame)
 
     if movement_controller.at_intersection(red_line):
         print("\n==============================AT INTERSECTION deliberate action")
@@ -204,11 +184,11 @@ def update(dt):
     line_info = (white_line, white_angle), (yellow_line, yellow_angle)
      
 
-    bot_action = movement_controller.move(pose, line_info)
+    bot_action = movement_controller.move(line_info)
 #    print(f'Bot move: {bot_action[0]}, {bot_action[1]}')
 
     user_control = np.array([v1, v2])
-    _, _, done, _ = env.step(bot_action)
+    _, _, done, _ = env.step(user_control)
 
 
     if key_handler[key.RETURN]:

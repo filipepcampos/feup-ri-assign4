@@ -1,8 +1,6 @@
 from enum import Enum
 import queue
-import cv2 as cv
 import numpy as np
-from simple_pid import PID
 import math
 
 RAD_TO_DEG = 180 / np.pi
@@ -263,43 +261,6 @@ class ArucoMovementController:
             return FORWARD_SPEED * distance_speedup, aruco_angle_correction
 
         return FORWARD_WITH_CAUTION_SPEED, 0.0
-
-
-#    def compute_lane_following_move(self, lines):
-#        white_line_info, yellow_line_info = lines
-#        white_line, white_angle = white_line_info
-#        yellow_line, yellow_angle = yellow_line_info
-#        
-#        white_line_reference =  0.873 # 0.873 # 0.785 # 50 degrees
-#        yellow_line_reference = 2.275 # 130 degrees
-#
-##        print(f"White angle: {RAD_TO_DEG * white_angle if white_angle is not None else None}\
-##                Yellow angle: {RAD_TO_DEG * yellow_angle if yellow_angle is not None else None}")
-#        
-#        dire = lambda x: "LEFT" if x > 0 else "RIGHT"
-##        line_length = lambda p1, p2: np.linalg.norm(np.array(p1) - np.array(p2))
-##        dist_to_pov = lambda line: FRAME_WIDTH - line[2]
-#        mean_correction = lambda x, y: np.mean([x, y])  # np.mean([abs(x), abs(y)]) * np.sign(x + y)
-#        
-#        correction = 0.0
-#        if white_angle is None and yellow_angle is None:
-#            return FORWARD_WITH_CAUTION_SPEED, 0.0   
-#
-#        if yellow_angle is not None and abs(abs(yellow_angle) - yellow_line_reference) > 0.1: 
-#            yellow_line_correction =  1.0 * (yellow_line_reference - abs(yellow_angle))  
-#            correction = yellow_line_correction             
-#            #print(f"Yellow line correction: {yellow_line_correction}, DIR: {dire(yellow_line_correction)}")
-#        if white_angle is not None and abs(abs(white_angle) - white_line_reference) > 0.1\
-#                and (yellow_angle is None or abs(yellow_angle) > abs(white_angle)):
-#            white_line_correction =  -1.0 * (white_line_reference - abs(white_angle))  
-#            correction = white_line_correction if correction == 0.0 else mean_correction(white_line_correction, correction)
-#            #print(f"White line correction: {white_line_correction}, DIR: {dire(white_line_correction)}")
-#       
-#        speed = FORWARD_SPEED/(3.0 + abs(correction))
-#        
-#        print(f"V1: {speed}, V2: {correction}, DIR: {dire(correction)}")
-#        self.current_speed = speed, correction
-#        return self.current_speed
 
 
     def compute_line_side(self, line, color="white"):

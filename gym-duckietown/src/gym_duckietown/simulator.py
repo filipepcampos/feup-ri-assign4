@@ -159,7 +159,7 @@ MIN_SPAWN_OBJ_DIST = 0.25
 # self.road_tile_size = 0.61
 
 # Maximum forward robot speed in meters/second
-DEFAULT_ROBOT_SPEED = 1.20
+DEFAULT_ROBOT_SPEED = 0.3
 # approx 2 tiles/second
 
 DEFAULT_FRAMERATE = 30
