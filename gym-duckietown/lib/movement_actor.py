@@ -27,6 +27,15 @@ class MovementActor:
         return np.array([v1, v2])
 
 
+    def go_straight(self):
+        self.state.increment_action_step()
+        self.state.check_going_forward_end()
+
+        print("STEP: ", self.state.action_step)
+
+        return FORWARD_SPEED, 0.0
+
+
     def take_curve(self, curve_type):
         # take the bezier curve and use it to move across 100 frames
        curve = left_curve if curve_type == Action.TURN_LEFT else right_curve
@@ -53,6 +62,8 @@ class MovementActor:
              return self.take_curve(Action.TURN_LEFT)
         elif self.state == State.CURVING_RIGHT:
             return self.take_curve(Action.TURN_RIGHT)
+        elif self.state == State.GOING_FORWARD:
+            return self.go_straight()
         
         return 0, 0
     
@@ -62,7 +73,7 @@ class MovementActor:
         if color == "white":
             return 0 if (x1 < FRAME_WIDTH / 3 and x2 < FRAME_WIDTH / 3) else 1    
         elif color == "yellow":
-           return 0 if (x1 < FRAME_WIDTH / 2 or x2 < FRAME_WIDTH / 2) else 1
+           return 0 if (x1 < FRAME_WIDTH / 2 and x2 < FRAME_WIDTH / 2) else 1
     
 
     def compute_lane_following_move(self, lines):
@@ -119,9 +130,9 @@ class MovementActor:
                     elif 40 < a <= 50:
                         yellow_angle_correction = 0.0
                     elif 55 < a <= 90:
-                        yellow_angle_correction = 1.0 if white_line is not None else -0.5
+                        yellow_angle_correction = 1.0 if white_line is not None else -0.4
                     elif a >= 90:
-                        yellow_angle_correction = 2.0 if white_line is not None else -0.5
+                        yellow_angle_correction = 2.0 if white_line is not None else -0.4
             return yellow_angle_correction
         
         white_angle_correction = get_white_angle_correction(white_line, white_angle, yellow_line)

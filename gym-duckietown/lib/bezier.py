@@ -9,7 +9,7 @@ CURVE_LEFT_BEZIER = np.array([[[-0.20, 0, -0.50],[-0.20, 0, -0.20], [-0.30, 0, -
 
 TURN_LEFT_STEPS = 275
 TURN_RIGHT_STEPS = 200
-
+GO_STRAIGHT_STEPS = 100
 
 avg_curve = lambda x, y: np.mean([x, y], axis=0)
 avg_weighted_curve = lambda x, y, w: np.average([x, y], axis=0, weights=[w, 1 - w])
