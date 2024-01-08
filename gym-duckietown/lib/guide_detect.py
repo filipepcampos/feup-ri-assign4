@@ -28,7 +28,8 @@ class GuideBotDetector():
 
         # DEBUG
         self.max = 1
-        self.min = 1000
+        self.min = 1000 
+        self.aruco_angle = 0
 
     def update(self):
         raise NotImplementedError("Inherit from this class and implement update()")
@@ -86,18 +87,19 @@ class ArUcoBotDetector(GuideBotDetector):
         delta_angle = angle - self.last_aruco_angle
         self.last_aruco_angle = angle
 
-        print(f"ANGLE: {angle}, DELTA ANGLE: {delta_angle}")
+        # print(f"ANGLE: {angle}, DELTA ANGLE: {delta_angle}")
 
         angle = np.mean(self.aruco_angle_history)
+        print(f"ANGLE: {angle}, DELTA ANGLE: {delta_angle}")
 
         #DEBUG 
         self.max = angle if abs(angle) > abs(self.max) else self.max
         self.min = angle if abs(angle) < abs(self.min) else self.min
         print("MAX, MIN: ", self.max, self.min)
 
-        if angle > 1.85:
+        if angle > 1.75:
             self.direction = Direction.RIGHT
-        elif angle < 1.0:
+        elif angle < 1.42:
             self.direction = Direction.LEFT
         else:
             self.direction = Direction.CENTER
@@ -121,6 +123,7 @@ class ArUcoBotDetector(GuideBotDetector):
             cv.aruco.drawDetectedMarkers(frame, corners, ids)
             marker_coordinates = corners[0]
             center_point = np.mean(marker_coordinates, axis=1, dtype=np.int32)[0]
+            self.aruco_angle = aruco_angle
 
             if aruco_angle is not None:
                 x1, y1 = center_point[0], center_point[1]

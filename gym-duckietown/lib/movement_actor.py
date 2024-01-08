@@ -99,17 +99,17 @@ class MovementActor:
                     white_angle_correction = -3.0
                 else:
                     if 90 < (a := to_deg(white_angle)) <= 100:
-                        white_angle_correction = -1.0 if yellow_line is not None else 2.0
+                        white_angle_correction = -1.5 if yellow_line is not None else 3.0
                     elif 100 < a <= 125:
-                        white_angle_correction = -0.5 if yellow_line is not None else 2.0
+                        white_angle_correction = -1.0 if yellow_line is not None else 3.0
                     elif 125 < a <= 130:
-                        white_angle_correction = 1.0
-                    elif 130 < a <= 145:
+                        white_angle_correction = -0.75
+                    elif 130 < a <= 140:
                         white_angle_correction = 0.0
-                    elif 150 < a <= 170:
-                        white_angle_correction = 1.5
+                    elif 145 < a <= 170:
+                        white_angle_correction = 1.3
                     elif 170 < a <= 180:
-                        white_angle_correction = 2.0
+                        white_angle_correction = 1.75
                     elif a > 180:
                         white_angle_correction = 3.0
             return white_angle_correction
@@ -124,9 +124,9 @@ class MovementActor:
                 #     yellow_angle_correction = 3.0
                 # else:
                 if 0 < (a := to_deg(yellow_angle)) <= 30:
-                    yellow_angle_correction = -0.5 if white_line is not None else -1.0
+                    yellow_angle_correction = -1.0 if white_line is not None else -1.0
                 elif 30 < a <= 40: 
-                    yellow_angle_correction = -1.0
+                    yellow_angle_correction = -0.5
                 elif 40 < a <= 50:
                     yellow_angle_correction = 0.0
                 elif 55 < a <= 90:

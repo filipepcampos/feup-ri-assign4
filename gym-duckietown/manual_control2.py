@@ -100,11 +100,48 @@ env.unwrapped.window.push_handlers(key_handler)
 
 
 edge_detector = EdgeDetector()
-guide_bot_detector = ArUcoBotDetector()
-movement_controller = ArucoMovementController(guide_bot_detector=guide_bot_detector)
+guide_bot_detector_aruco = ArUcoBotDetector()
+guide_bot_detector_obj_detection = ArUcoBotDetector()
+movement_controller = ArucoMovementController(guide_bot_detector=guide_bot_detector_aruco)
 
 white_line_history = deque(maxlen=4)
 yellow_line_history = deque(maxlen=4)
+
+
+def normalize_angle(angle):
+    # Normalize angle between -pi and pi
+    angle = angle % (2 * np.pi)
+    if angle > np.pi:
+        angle -= 2 * np.pi
+    return angle
+
+def compute_bot_angle_difference(angle): 
+
+     # Get main duckiebot position and angle
+    main_duckiebot = [env.cur_pos, env.cur_angle]
+
+    # Get world objects
+    world_objects = env.objects
+
+    # Get other duckiebot position and angle
+    other_duckiebot = [world_objects[0].pos, world_objects[0].angle]
+
+    # Get relative position and angle
+    relative_pos = np.array(main_duckiebot[0]) - np.array(other_duckiebot[0])
+    relative_angle = main_duckiebot[1] - other_duckiebot[1]
+
+    # Normalize relative angle between -pi and pi
+    relative_angle = normalize_angle(relative_angle)
+
+    angle -= np.pi/2
+
+    angle_difference = angle - relative_angle
+
+    print(f"ANGLE: {angle}, RELATIVE ANGLE: {relative_angle},ANGLE DIFFERENCE: {angle_difference}")
+
+    return angle_difference
+    
+
 
 
 def update(dt):
@@ -159,8 +196,13 @@ def update(dt):
     #     yellow_line = np.mean(yellow_line_history, axis=0)
 
     # ARUCO
-    guide_bot_detector.update(frame)
-    guide_bot_detector.draw(frame)
+    guide_bot_detector_aruco.update(frame)
+    guide_bot_detector_obj_detection.update(frame)
+
+    guide_bot_detector_aruco.draw(frame)
+    
+
+    compute_bot_angle_difference(guide_bot_detector_aruco.aruco_angle)
 
     cv.imshow("frame", frame)
     cv.waitKey(1)
