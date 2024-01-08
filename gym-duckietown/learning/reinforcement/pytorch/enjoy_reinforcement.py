@@ -8,7 +8,13 @@ import numpy as np
 # Duckietown Specific
 from reinforcement.pytorch.ddpg import DDPG
 from utils.env import launch_env
-from utils.wrappers import NormalizeWrapper, ImgWrapper, DtRewardWrapper, ActionWrapper, ResizeWrapper
+from utils.wrappers import (
+    NormalizeWrapper,
+    ImgWrapper,
+    DtRewardWrapper,
+    ActionWrapper,
+    ResizeWrapper,
+)
 
 
 def _enjoy():

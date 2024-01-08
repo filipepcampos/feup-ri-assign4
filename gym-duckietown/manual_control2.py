@@ -199,6 +199,10 @@ def update(dt):
         frame = cv.cvtColor(obs, cv.COLOR_RGB2BGR)
         cv.imwrite("screen.png", frame)
 
+
+    cv.imshow("frame", frame)
+    cv.waitKey(1)
+
     if done:
         print("done!")
         env.reset()
