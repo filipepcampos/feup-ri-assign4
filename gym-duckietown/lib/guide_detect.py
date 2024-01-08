@@ -29,7 +29,8 @@ class GuideBotDetector():
         # DEBUG
         self.max = 1
         self.min = 1000 
-        self.aruco_angle = 0
+        self.angle = 0
+        self.distance_val = 0
 
     def update(self):
         raise NotImplementedError("Inherit from this class and implement update()")
@@ -123,7 +124,9 @@ class ArUcoBotDetector(GuideBotDetector):
             cv.aruco.drawDetectedMarkers(frame, corners, ids)
             marker_coordinates = corners[0]
             center_point = np.mean(marker_coordinates, axis=1, dtype=np.int32)[0]
-            self.aruco_angle = aruco_angle
+
+            self.angle = aruco_angle
+            self.distance_val = distance
 
             if aruco_angle is not None:
                 x1, y1 = center_point[0], center_point[1]

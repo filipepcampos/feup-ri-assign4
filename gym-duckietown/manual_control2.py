@@ -18,6 +18,7 @@ from pyglet.window import key
 import queue
 from enum import Enum
 from gym_duckietown.envs import DuckietownEnv
+import math
 # from experiments.utils import save_img
 
 from edge_detector import EdgeDetector
@@ -110,6 +111,9 @@ white_line_history = deque(maxlen=4)
 yellow_line_history = deque(maxlen=4)
 
 
+info_record = []
+
+
 def normalize_angle(angle):
     # Normalize angle between -pi and pi
     angle = angle % (2 * np.pi)
@@ -117,7 +121,7 @@ def normalize_angle(angle):
         angle -= 2 * np.pi
     return angle
 
-def compute_bot_angle_difference(angle): 
+def get_relative_angle_and_pos(): 
 
      # Get main duckiebot position and angle
     main_duckiebot = [env.cur_pos, env.cur_angle]
@@ -130,18 +134,65 @@ def compute_bot_angle_difference(angle):
 
     # Get relative position and angle
     relative_pos = np.array(main_duckiebot[0]) - np.array(other_duckiebot[0])
+    relative_distance = np.linalg.norm(relative_pos)
+
     relative_angle = main_duckiebot[1] - other_duckiebot[1]
 
     # Normalize relative angle between -pi and pi
     relative_angle = normalize_angle(relative_angle)
 
-    angle -= np.pi/2
+    return relative_angle, relative_distance
+    
 
-    angle_difference = angle - relative_angle
+def get_distance_class(distance: float):
+    if distance < 0.25:
+        return 0
+    elif distance < 0.35:
+        return 1
+    elif distance < 0.45:
+        return 2
+    elif distance < 0.55:
+        return 3
+    return 4
 
-    print(f"ANGLE: {angle}, RELATIVE ANGLE: {relative_angle},ANGLE DIFFERENCE: {angle_difference}")
+def distance_from_class(distance):
+    if distance == 0: 
+        return 0.25 / 2
+    elif distance == 1:
+        return (0.25 + 0.35) / 2
+    elif distance == 2:
+        return (0.35 + 0.45) / 2
+    elif distance == 3:
+        return (0.45 + 0.55) / 2
+    return 0.55
 
-    return angle_difference
+
+def deg_to_rad(deg: float):
+    return deg * math.pi / 180.0
+
+
+def get_angle_class(angle: float): # TODO: This is not correct
+    if angle < -deg_to_rad(70):
+        return 0
+    if angle < -deg_to_rad(25):
+        return 1
+    if angle < deg_to_rad(25):
+        return 2
+    if angle < deg_to_rad(70):
+        return 3
+    return 4
+
+
+def angle_from_class(angle):
+    if angle == 0:
+        return -deg_to_rad(70) 
+    elif angle == 1:
+        return (-deg_to_rad(70) + deg_to_rad(25)) / 2
+    elif angle == 2:
+        return 0
+    elif angle == 3:
+        return (deg_to_rad(70) - deg_to_rad(25)) / 2
+    return deg_to_rad(70)
     
 
 
@@ -200,10 +251,32 @@ def update(dt):
     # ARUCO
 
     guide_bot_detector_aruco.update(frame)
-    guide_bot_detector_aruco.draw(frame)
-    
-    compute_bot_angle_difference(guide_bot_detector_aruco.aruco_angle)
     guide_bot_detector_obj_detection.update(frame)
+
+    
+    aruco_angle = guide_bot_detector_aruco.angle - np.pi/2
+    aruco_distance = guide_bot_detector_aruco.distance_val
+    
+    yolo_angle = angle_from_class(guide_bot_detector_obj_detection.direction) - np.pi/2
+    yolo_distance = distance_from_class(guide_bot_detector_obj_detection.distance)
+    
+    relative_angle, relative_pos = get_relative_angle_and_pos()
+
+
+    # extract from 'aruco_angle': array([    0.10453]), 'aruco_distance': array([    0.41858])
+    info_record.append({
+        "relative_angle": relative_angle,
+        "relative_pos": relative_pos,
+        "aruco_angle": aruco_angle if aruco_angle is not None else None, 
+        "aruco_distance": aruco_distance if aruco_distance is not None else None,
+        "yolo_angle": yolo_angle,
+        "yolo_distance": yolo_distance,
+    })
+
+
+    #guide_bot_detector_aruco.draw(frame)
+    
+    
     # frame = guide_bot_detector_obj_detection.draw(frame)
 
     cv.imshow("frame", frame)
@@ -232,17 +305,20 @@ def update(dt):
      
 
     bot_action = movement_controller.move(line_info)
-#    print(f'Bot move: {bot_action[0]}, {bot_action[1]}')
+    print(f'Bot move: {bot_action[0]}, {bot_action[1]}')
 
     user_control = np.array([v1, v2])
     _, _, done, _ = env.step(bot_action)
 
+    # print(info_record)
 
     if key_handler[key.RETURN]:
         # Save frame as png
-        frame = cv.cvtColor(obs, cv.COLOR_RGB2BGR)
-        cv.imwrite("screen.png", frame)
-
+        # frame = cv.cvtColor(obs, cv.COLOR_RGB2BGR)
+        # cv.imwrite("screen.png", frame)
+        with open("info_record.json", "w") as f:
+            import json
+            json.dump(info_record, f)
 
     cv.imshow("frame", frame)
     cv.waitKey(1)
