@@ -39,7 +39,7 @@ def get_left_curve():
 
 
 def get_right_curve():
-    return bezier_curve_with_straight_ending(CURVE_RIGHT_BEZIER[0], TURN_RIGHT_STEPS, "right")
+    return bezier_curve(CURVE_RIGHT_BEZIER[0], TURN_RIGHT_STEPS)
 
 left_curve = get_left_curve()
 right_curve = get_right_curve()

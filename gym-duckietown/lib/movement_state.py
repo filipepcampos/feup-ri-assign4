@@ -30,6 +30,7 @@ action_to_state = {
 
 
 
+
 class MovementState: 
     action_to_state = {
         Action.TURN_LEFT: State.CURVING_LEFT,
@@ -44,8 +45,8 @@ class MovementState:
         self.last_aruco_angle = 0
 
         # DEBUG
-        self.action_queue.put(Action.GO_FORWARD)
-        self.action_queue.put(Action.TURN_RIGHT)
+        #self.action_queue.put(Action.GO_FORWARD)
+        #self.action_queue.put(Action.TURN_RIGHT)
 
     def get_curve_moves(self, curve):
        next_move = curve[self.action_step]
@@ -73,7 +74,10 @@ class MovementState:
             self.state = action_to_state[self.action_queue.get()]
             
         return self.state
-        
+
+    def add_new_action(self, action):
+        self.action_queue.put(action)
+
     def increment_action_step(self):
         self.action_step += 1
 

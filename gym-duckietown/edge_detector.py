@@ -6,20 +6,20 @@ class EdgeDetector:
     def __init__(self):
         self.erode_kernel = np.ones((5, 5), np.uint8)
         self.dilate_kernel = np.ones((9, 9), np.uint8)
-        
+
     def define_masks(self, frame):
         lower_white, upper_white = np.array([0, 0, 100]), np.array([170, 40, 255])
         # lower_yellow, upper_yellow = np.array([20, 30, 80]), np.array([50, 255, 255])
-        lower_yellow, upper_yellow = np.array([20, 30, 65]), np.array([60, 255, 255])
+        lower_yellow, upper_yellow = np.array([20, 50, 65]), np.array([60, 255, 255])
         # 356, 78, 92 as to be expected (170, 70, 50), Scalar(180, 255, 255)
         lower_red, upper_red = np.array([170, 70, 50]), np.array([180, 255, 255])
         mask_white = cv.inRange(frame, lower_white, upper_white)
         mask_yellow = cv.inRange(frame, lower_yellow, upper_yellow)
         mask_red = cv.inRange(frame, lower_red, upper_red)
-        
+
         return mask_white, mask_yellow, mask_red
-        
-    def erode_and_dilate(self, masks): 
+
+    def erode_and_dilate(self, masks):
         mask_white, mask_yellow, mask_red = masks
         mask_white = cv.erode(mask_white, self.erode_kernel, iterations=2)
         mask_white = cv.dilate(mask_white, self.dilate_kernel, iterations=1)
@@ -30,39 +30,45 @@ class EdgeDetector:
         mask_red = cv.erode(mask_red, self.erode_kernel, iterations=2)
         mask_red = cv.dilate(mask_red, self.dilate_kernel, iterations=1)
 
-
         return mask_white, mask_yellow, mask_red
 
     def detect_edges(self, masks):
-         mask_white, mask_yellow, mask_red = masks
-         edges_white = cv.Canny(mask_white, 100, 200)    
-         edges_yellow = cv.Canny(mask_yellow, 100, 200)
-         edges_red = cv.Canny(mask_red, 100, 200)
-         return edges_white, edges_yellow, edges_red
+        mask_white, mask_yellow, mask_red = masks
+        edges_white = cv.Canny(mask_white, 100, 200)
+        edges_yellow = cv.Canny(mask_yellow, 100, 200)
+        edges_red = cv.Canny(mask_red, 100, 200)
+        return edges_white, edges_yellow, edges_red
 
-    def detect_lines(self, colored_edges, maxLineGaps, minLineLength=10): 
+    def detect_lines(self, colored_edges, maxLineGaps, minLineLength=10):
         # Get lines from edges
         white_edges, yellow_edges, red_edges = colored_edges
 
         lines = lambda edges, maxLineGap: cv.HoughLinesP(
-            edges, 1, np.pi / 180, 100, minLineLength=minLineLength, maxLineGap=maxLineGap
+            edges,
+            1,
+            np.pi / 180,
+            100,
+            minLineLength=minLineLength,
+            maxLineGap=maxLineGap,
         )
 
-        return lines(white_edges, maxLineGaps[0]), \
-               lines(yellow_edges, maxLineGaps[1]), \
-               lines(red_edges, maxLineGaps[2])
+        return (
+            lines(white_edges, maxLineGaps[0]),
+            lines(yellow_edges, maxLineGaps[1]),
+            lines(red_edges, maxLineGaps[2]),
+        )
 
-    def remove_horizontal_lines(self, lines): 
+    def remove_horizontal_lines(self, lines):
         return lines[abs(lines[:, :, 1] - lines[:, :, 3]) > 50]
 
     def get_horizontal_lines(self, lines):
         return lines[abs(lines[:, :, 1] - lines[:, :, 3]) < 50]
-    
-    def get_average_line(self, lines): 
+
+    def get_average_line(self, lines):
         return np.mean(lines, axis=0, dtype=np.int32)
 
-    
-    def get_angle(self, line): 
+    def get_angle(self, line):
+        print(line, type(line))
         x1, y1, x2, y2 = line
         return np.arctan2(y2 - y1, x2 - x1) - np.pi / 2
 
@@ -70,65 +76,107 @@ class EdgeDetector:
         x1, y1, x2, y2 = line
         cv.line(frame, (x1, y1), (x2, y2), color, 5)
 
-    def get_lines(self,converted, frame): 
-         # Define masks
-          mask_white, mask_yellow, mask_red = self.define_masks(converted)
-          cv.imwrite("mask_yellow_before_erode.png", mask_yellow)
-          mask_white, mask_yellow, mask_red = self.erode_and_dilate((mask_white, mask_yellow, mask_red))
-                                                                                                                     
-          cv.imshow("mask_white", mask_white)
-          cv.imshow("mask_yellow", mask_yellow)
-          cv.imshow("mask_red", mask_red)
-                                                                                                                     
-          # Get lanes by detecting edges 
-          edges_white, edges_yellow, edges_red = self.detect_edges((mask_white, mask_yellow, mask_red))   
-                                                                                                                     
-          cv.imshow("edges_white", edges_white)
+    def get_lines(self, converted, frame):
+        # Define masks
+        mask_white, mask_yellow, mask_red = self.define_masks(converted)
+        cv.imwrite("mask_yellow_before_erode.png", mask_yellow)
+        mask_white, mask_yellow, mask_red = self.erode_and_dilate(
+            (mask_white, mask_yellow, mask_red)
+        )
+
+        #   cv.imshow("mask_white", mask_white)
+        #   cv.imshow("mask_yellow", mask_yellow)
+        #   cv.imshow("mask_red", mask_red)
+
+        # Get lanes by detecting edges
+        edges_white, edges_yellow, edges_red = self.detect_edges(
+            (mask_white, mask_yellow, mask_red)
+        )
+
+        #   cv.imshow("edges_white", edges_white)
+
+        #   cv.imwrite("edges_yellow.png", edges_yellow)
+        #   cv.imwrite("mask_yellow.png", mask_yellow)
+
+        #   cv.imshow("edges_red", edges_red)
+
+        # make half of the edges_white image black
+        edges_white[:, 0 : edges_white.shape[1] // 3] = 0
+
+        # Get lines from edges
+        white_lines, yellow_lines, red_lines = self.detect_lines(
+            (edges_white, edges_yellow, edges_red), [10, 100, 100]
+        )
 
 
-          cv.imshow("edges_yellow", edges_yellow)
+        LOWER_COLOR_DUCKIEBOT = np.array([0, 230, 60])
+        UPPER_COLOR_DUCKIEBOT = np.array([10, 255, 150])
+        mask_duckiebot = cv.inRange(frame, LOWER_COLOR_DUCKIEBOT, UPPER_COLOR_DUCKIEBOT)
+        cv.imshow("mask_duckiebot", mask_duckiebot)
 
+        mask_yellow = cv.erode(mask_yellow, self.erode_kernel, iterations=3)
+        ret, markers = cv.connectedComponents(mask_yellow)
 
-          cv.imwrite("edges_yellow.png", edges_yellow)
-          cv.imwrite("mask_yellow.png", mask_yellow)
+        
 
-          cv.imshow("edges_red", edges_red)
-          
-          # make half of the edges_white image black
-          edges_white[:, 0:edges_white.shape[1]//3] = 0
-                                                                                                                     
-          # Get lines from edges
-          white_lines, yellow_lines, red_lines = self.detect_lines((edges_white, edges_yellow, edges_red), 
-                                                                            [10,100, 100])
-          
-          if white_lines is not None and len(self.remove_horizontal_lines(white_lines)) > 0:
-              white_lines = [self.remove_horizontal_lines(white_lines)]
-         # if white_lines is not None:
-         #     print("First White Lines", white_lines)
-         #     print(white_lines[0])
-         #     white_lines = self.remove_horizontal_lines(white_lines)
-          if red_lines is not None:
-              red_lines = self.get_horizontal_lines(red_lines)
-          
-                                                                                                                     
-          white_line = None
-          yellow_line = None
-          red_line = None
-            
-          # Get the average line
-          if white_lines is not None: # or len(white_lines) > 0:
-              white_line = self.get_average_line(white_lines)[0]
-              # white_line = white_lines[0][0]
-              self.draw_line(frame, white_line, (0, 0, 255))
-          if yellow_lines is not None:
-              yellow_line = self.get_average_line(yellow_lines)
-              print("Avg lines", yellow_line)
-              self.draw_line(frame, yellow_line[0], (255, 0, 0))
-          if red_lines is not None and len(red_lines) > 0:
-              #red_line = self.get_average_line(red_lines)
-              red_line = red_lines[0]
-              self.draw_line(frame, red_line, (0, 255, 0))
+        mask_yellow = cv.cvtColor(mask_yellow, cv.COLOR_GRAY2BGR)
 
+        
+        points = []
+        for i in range(1, ret):
+            center_point = np.where(markers == i)
+            center_point = np.mean(center_point, axis=1, dtype=np.int32)
+            points.append(center_point)
+            cv.circle(mask_yellow, (center_point[1], center_point[0]), 5, (0, 0, 255), -1)
+        
 
-          return white_line, yellow_line, red_line
+        # draw lines between consective points
+        distances = []
+        for i in range(len(points) - 1):
+            distances.append(np.linalg.norm(points[i] - points[i+1]))
+        mean_distance = np.mean(distances)
 
+        yellow_lines = []
+        for i in range(len(points) - 1):
+            print(mean_distance)
+            if np.linalg.norm(points[i] - points[i+1]) > 100:
+                continue
+
+            cv.line(mask_yellow, (points[i][1], points[i][0]), (points[i+1][1], points[i+1][0]), (0, 255, 0), 5)
+            yellow_lines.append([points[i][1], points[i][0], points[i+1][1], points[i+1][0]])
+        yellow_lines = np.array(yellow_lines)
+
+        cv.imshow("mask_yellow", mask_yellow)
+
+        if (
+            white_lines is not None
+            and len(self.remove_horizontal_lines(white_lines)) > 0
+        ):
+            white_lines = [self.remove_horizontal_lines(white_lines)]
+        # if white_lines is not None:
+        #     print("First White Lines", white_lines)
+        #     print(white_lines[0])
+        #     white_lines = self.remove_horizontal_lines(white_lines)
+        if red_lines is not None:
+            red_lines = self.get_horizontal_lines(red_lines)
+
+        white_line = None
+        yellow_line = None
+        red_line = None
+
+        # Get the average line
+        if white_lines is not None:  # or len(white_lines) > 0:
+            white_line = self.get_average_line(white_lines)[0]
+            self.draw_line(frame, white_line, (0, 0, 255))
+        if yellow_lines is not None and len(yellow_lines) > 0:
+            yellow_line = self.get_average_line(yellow_lines)
+            self.draw_line(frame, yellow_line, (255, 0, 0))
+        if red_lines is not None and len(red_lines) > 0:
+            # red_line = self.get_average_line(red_lines)
+            red_line = red_lines[0]
+            self.draw_line(frame, red_line, (0, 255, 0))
+
+        print("white_line", white_line, type(white_line))
+        print("yellow_line", yellow_line, type(yellow_line))
+
+        return white_line, yellow_line, red_line

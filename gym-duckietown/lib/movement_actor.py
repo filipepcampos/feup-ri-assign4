@@ -99,9 +99,9 @@ class MovementActor:
                     white_angle_correction = -3.0
                 else:
                     if 90 < (a := to_deg(white_angle)) <= 100:
-                        white_angle_correction = -1.0 if yellow_line is not None else 1.5
+                        white_angle_correction = -1.0 if yellow_line is not None else 2.0
                     elif 100 < a <= 125:
-                        white_angle_correction = -0.5 if yellow_line is not None else 1.5
+                        white_angle_correction = -0.5 if yellow_line is not None else 2.0
                     elif 125 < a <= 130:
                         white_angle_correction = 1.0
                     elif 130 < a <= 145:
@@ -120,19 +120,19 @@ class MovementActor:
             if yellow_angle is not None: 
                 yellow_angle = yellow_angle if yellow_angle > 0 else np.pi + yellow_angle
                 print(f"Yellow angle: {RAD_TO_DEG * yellow_angle if yellow_angle is not None else None}")
-                if self.compute_line_side(yellow_line, "yellow") == 1: # right 
-                    yellow_angle_correction = 3.0
-                else:
-                    if 0 < (a := to_deg(yellow_angle)) <= 30:
-                        yellow_angle_correction = -0.5 if white_line is not None else -1.0
-                    elif 30 < a <= 40: 
-                        yellow_angle_correction = -1.0
-                    elif 40 < a <= 50:
-                        yellow_angle_correction = 0.0
-                    elif 55 < a <= 90:
-                        yellow_angle_correction = 1.0 if white_line is not None else -0.4
-                    elif a >= 90:
-                        yellow_angle_correction = 2.0 if white_line is not None else -0.4
+                # if self.compute_line_side(yellow_line, "yellow") == 1: # right 
+                #     yellow_angle_correction = 3.0
+                # else:
+                if 0 < (a := to_deg(yellow_angle)) <= 30:
+                    yellow_angle_correction = -0.5 if white_line is not None else -1.0
+                elif 30 < a <= 40: 
+                    yellow_angle_correction = -1.0
+                elif 40 < a <= 50:
+                    yellow_angle_correction = 0.0
+                elif 55 < a <= 90:
+                    yellow_angle_correction = 1.0 if white_line is not None else -2.5
+                elif a >= 90:
+                    yellow_angle_correction = 2.0 if white_line is not None else -2.5
             return yellow_angle_correction
         
         white_angle_correction = get_white_angle_correction(white_line, white_angle, yellow_line)

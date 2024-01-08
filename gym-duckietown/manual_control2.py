@@ -158,11 +158,14 @@ def update(dt):
     # else:
     #     yellow_line = np.mean(yellow_line_history, axis=0)
 
+    # ARUCO
+    guide_bot_detector.update(frame)
+    guide_bot_detector.draw(frame)
+
     cv.imshow("frame", frame)
     cv.waitKey(1)
     
-    # ARUCO
-    guide_bot_detector.update(frame)
+    
 
     if movement_controller.at_intersection(red_line):
         print("\n==============================AT INTERSECTION deliberate action")
@@ -178,7 +181,7 @@ def update(dt):
         white_angle = edge_detector.get_angle(white_line)
 
     if yellow_line is not None:
-        yellow_line = yellow_line[0]
+        # yellow_line = yellow_line[0]
         yellow_angle = edge_detector.get_angle(yellow_line)
 
     line_info = (white_line, white_angle), (yellow_line, yellow_angle)
@@ -188,7 +191,7 @@ def update(dt):
 #    print(f'Bot move: {bot_action[0]}, {bot_action[1]}')
 
     user_control = np.array([v1, v2])
-    _, _, done, _ = env.step(user_control)
+    _, _, done, _ = env.step(bot_action)
 
 
     if key_handler[key.RETURN]:

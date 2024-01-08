@@ -206,7 +206,7 @@ class DuckiebotObj(WorldObj):
             self.robot_length = robot_length + 0.01 * np.random.uniform(-1, 1)
         else:
             self.follow_dist = 0.3
-            self.velocity = 0.1
+            self.velocity = 0.08
             self.gain = gain
             self.trim = trim
             self.radius = radius
@@ -261,6 +261,9 @@ class DuckiebotObj(WorldObj):
 
         dot = np.dot(get_right_vec(self.angle), point_vec)
         steering = self.gain * -dot
+
+        if steering > 0.1:
+            velocity = self.velocity * 0.8
 
         velocity = self.velocity
 
