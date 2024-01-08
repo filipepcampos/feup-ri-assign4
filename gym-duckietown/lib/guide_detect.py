@@ -178,8 +178,10 @@ class YOLOBotDetector():
         center_x, center_y, width, height, conf, class1, class2, dist1, dist2, dist3, dist4, dist5, rot1, rot2, rot3, rot4, rot5 = self.best_duckiebot_detection
 
         self.dist_queue.append([dist1, dist2, dist3, dist4, dist5])
+        self.distance = Distance(np.argmax([sum(x) / len(x) for x in zip(*self.dist_queue)]))
 
         self.rot_queue.append([rot1, rot2, rot3, rot4, rot5])
+        self.direction = Direction(np.argmax([sum(x) / len(x) for x in zip(*self.rot_queue)]))
 
 
         
@@ -197,12 +199,12 @@ class YOLOBotDetector():
                 if class_label == 0:
                     detections.append((class_label, result))
 
-            if conf > best_duckiebot_conf and class_label == 1 and conf > 0.2:
+            if conf > best_duckiebot_conf and class_label == 1 and conf > 0.15:
                 best_duckiebot_detection = result
                 best_duckiebot_conf = conf
 
-        if best_duckiebot_detection is not None:
-            self.best_duckiebot_detection = best_duckiebot_detection
+        self.best_duckiebot_detection = best_duckiebot_detection
+        if best_duckiebot_detection is not None:            
             detections.append((1, best_duckiebot_detection))
         
         self.detections = detections
