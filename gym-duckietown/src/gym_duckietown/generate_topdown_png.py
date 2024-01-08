@@ -49,7 +49,6 @@ bpy.ops.object.select_all(action="DESELECT")
 render = bpy.context.scene.render
 
 for obj_fname in sorted(obj_root.glob("*.obj")):
-
     # import obj
     bpy.ops.import_scene.obj(filepath=str(obj_fname))
 

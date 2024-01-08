@@ -30,7 +30,9 @@ def get_texture(tex_name: str, rng=None, segment: bool = False) -> "Texture":
         path += ".SEGMENTED"
 
     if path not in Texture.tex_cache:
-        Texture.tex_cache[path] = Texture(load_texture(oldpath, segment), tex_name=tex_name, rng=rng)
+        Texture.tex_cache[path] = Texture(
+            load_texture(oldpath, segment), tex_name=tex_name, rng=rng
+        )
 
     return Texture.tex_cache[path]
 
@@ -126,7 +128,11 @@ def load_texture(tex_path: str, segment: bool = False, segment_into_color=None):
             top_to_bottom_flag = -1
             bytes_per_row = channels * cols
             img = pyglet.image.ImageData(
-                width=cols, height=rows, format="BGR", data=raw_img, pitch=top_to_bottom_flag * bytes_per_row
+                width=cols,
+                height=rows,
+                format="BGR",
+                data=raw_img,
+                pitch=top_to_bottom_flag * bytes_per_row,
             )
 
     tex = img.get_texture()
@@ -187,10 +193,19 @@ def create_frame_buffers(width: int, height: int, num_samples: int) -> Tuple[int
         gl.glGenTextures(1, byref(fbTex))
         gl.glBindTexture(gl.GL_TEXTURE_2D_MULTISAMPLE, fbTex)
         gl.glTexImage2DMultisample(
-            gl.GL_TEXTURE_2D_MULTISAMPLE, num_samples, gl.GL_RGBA32F, width, height, True
+            gl.GL_TEXTURE_2D_MULTISAMPLE,
+            num_samples,
+            gl.GL_RGBA32F,
+            width,
+            height,
+            True,
         )
         gl.glFramebufferTexture2D(
-            gl.GL_FRAMEBUFFER, gl.GL_COLOR_ATTACHMENT0, gl.GL_TEXTURE_2D_MULTISAMPLE, fbTex, 0
+            gl.GL_FRAMEBUFFER,
+            gl.GL_COLOR_ATTACHMENT0,
+            gl.GL_TEXTURE_2D_MULTISAMPLE,
+            fbTex,
+            0,
         )
 
         # Attach a multisampled depth buffer to the FBO
@@ -200,7 +215,9 @@ def create_frame_buffers(width: int, height: int, num_samples: int) -> Tuple[int
         gl.glRenderbufferStorageMultisample(
             gl.GL_RENDERBUFFER, num_samples, gl.GL_DEPTH_COMPONENT, width, height
         )
-        gl.glFramebufferRenderbuffer(gl.GL_FRAMEBUFFER, gl.GL_DEPTH_ATTACHMENT, gl.GL_RENDERBUFFER, depth_rb)
+        gl.glFramebufferRenderbuffer(
+            gl.GL_FRAMEBUFFER, gl.GL_DEPTH_ATTACHMENT, gl.GL_RENDERBUFFER, depth_rb
+        )
 
     except BaseException as e:
         # logger.warning(e=traceback.format_exc())
@@ -210,15 +227,31 @@ def create_frame_buffers(width: int, height: int, num_samples: int) -> Tuple[int
         fbTex = gl.GLuint(0)
         gl.glGenTextures(1, byref(fbTex))
         gl.glBindTexture(gl.GL_TEXTURE_2D, fbTex)
-        gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, width, height, 0, gl.GL_RGBA, gl.GL_FLOAT, None)
-        gl.glFramebufferTexture2D(gl.GL_FRAMEBUFFER, gl.GL_COLOR_ATTACHMENT0, gl.GL_TEXTURE_2D, fbTex, 0)
+        gl.glTexImage2D(
+            gl.GL_TEXTURE_2D,
+            0,
+            gl.GL_RGBA,
+            width,
+            height,
+            0,
+            gl.GL_RGBA,
+            gl.GL_FLOAT,
+            None,
+        )
+        gl.glFramebufferTexture2D(
+            gl.GL_FRAMEBUFFER, gl.GL_COLOR_ATTACHMENT0, gl.GL_TEXTURE_2D, fbTex, 0
+        )
 
         # Attach depth buffer to FBO
         depth_rb = gl.GLuint(0)
         gl.glGenRenderbuffers(1, byref(depth_rb))
         gl.glBindRenderbuffer(gl.GL_RENDERBUFFER, depth_rb)
-        gl.glRenderbufferStorage(gl.GL_RENDERBUFFER, gl.GL_DEPTH_COMPONENT, width, height)
-        gl.glFramebufferRenderbuffer(gl.GL_FRAMEBUFFER, gl.GL_DEPTH_ATTACHMENT, gl.GL_RENDERBUFFER, depth_rb)
+        gl.glRenderbufferStorage(
+            gl.GL_RENDERBUFFER, gl.GL_DEPTH_COMPONENT, width, height
+        )
+        gl.glFramebufferRenderbuffer(
+            gl.GL_FRAMEBUFFER, gl.GL_DEPTH_ATTACHMENT, gl.GL_RENDERBUFFER, depth_rb
+        )
 
     # Sanity check
 
@@ -235,8 +268,12 @@ def create_frame_buffers(width: int, height: int, num_samples: int) -> Tuple[int
     fbTex = gl.GLuint(0)
     gl.glGenTextures(1, byref(fbTex))
     gl.glBindTexture(gl.GL_TEXTURE_2D, fbTex)
-    gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, width, height, 0, gl.GL_RGBA, gl.GL_FLOAT, None)
-    gl.glFramebufferTexture2D(gl.GL_FRAMEBUFFER, gl.GL_COLOR_ATTACHMENT0, gl.GL_TEXTURE_2D, fbTex, 0)
+    gl.glTexImage2D(
+        gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, width, height, 0, gl.GL_RGBA, gl.GL_FLOAT, None
+    )
+    gl.glFramebufferTexture2D(
+        gl.GL_FRAMEBUFFER, gl.GL_COLOR_ATTACHMENT0, gl.GL_TEXTURE_2D, fbTex, 0
+    )
 
     if pyglet.options["debug_gl"]:
         res = gl.glCheckFramebufferStatus(gl.GL_FRAMEBUFFER)

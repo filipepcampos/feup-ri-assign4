@@ -22,7 +22,7 @@ from gym_duckietown.envs import DuckietownEnv
 
 from edge_detector import EdgeDetector
 from lib.movement_controller import ArucoMovementController
-from lib.guide_detect import ArUcoBotDetector
+from lib.guide_detect import ArUcoBotDetector, YOLOBotDetector
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--env-name", default=None)
@@ -100,9 +100,11 @@ env.unwrapped.window.push_handlers(key_handler)
 
 
 edge_detector = EdgeDetector()
+
 guide_bot_detector_aruco = ArUcoBotDetector()
-guide_bot_detector_obj_detection = ArUcoBotDetector()
+guide_bot_detector_obj_detection = YOLOBotDetector()
 movement_controller = ArucoMovementController(guide_bot_detector=guide_bot_detector_aruco)
+
 
 white_line_history = deque(maxlen=4)
 yellow_line_history = deque(maxlen=4)
@@ -196,13 +198,13 @@ def update(dt):
     #     yellow_line = np.mean(yellow_line_history, axis=0)
 
     # ARUCO
-    guide_bot_detector_aruco.update(frame)
-    guide_bot_detector_obj_detection.update(frame)
 
+    guide_bot_detector_aruco.update(frame)
     guide_bot_detector_aruco.draw(frame)
     
-
     compute_bot_angle_difference(guide_bot_detector_aruco.aruco_angle)
+    guide_bot_detector_obj_detection.update(frame)
+    # frame = guide_bot_detector_obj_detection.draw(frame)
 
     cv.imshow("frame", frame)
     cv.waitKey(1)
@@ -240,6 +242,10 @@ def update(dt):
         # Save frame as png
         frame = cv.cvtColor(obs, cv.COLOR_RGB2BGR)
         cv.imwrite("screen.png", frame)
+
+
+    cv.imshow("frame", frame)
+    cv.waitKey(1)
 
     if done:
         print("done!")

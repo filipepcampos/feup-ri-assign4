@@ -8,10 +8,10 @@ import numpy as np
 guidebotdetection_to_action = {
     Direction.LEFT : Action.TURN_LEFT,
     Direction.RIGHT : Action.TURN_RIGHT,
+    Direction.VERY_LEFT : Action.TURN_LEFT,
+    Direction.VERY_RIGHT : Action.TURN_RIGHT,
     Direction.CENTER : Action.GO_FORWARD,
 }
-
-
 
 
 
