@@ -22,7 +22,7 @@ from gym_duckietown.envs import DuckietownEnv
 
 from edge_detector import EdgeDetector
 from lib.movement_controller import ArucoMovementController
-from lib.guide_detect import ArUcoBotDetector
+from lib.guide_detect import ArUcoBotDetector, YOLOBotDetector
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--env-name", default=None)
@@ -100,7 +100,8 @@ env.unwrapped.window.push_handlers(key_handler)
 
 
 edge_detector = EdgeDetector()
-guide_bot_detector = ArUcoBotDetector()
+#guide_bot_detector = ArUcoBotDetector()
+guide_bot_detector = YOLOBotDetector()
 movement_controller = ArucoMovementController(guide_bot_detector=guide_bot_detector)
 
 white_line_history = deque(maxlen=4)
@@ -160,7 +161,7 @@ def update(dt):
 
     # ARUCO
     guide_bot_detector.update(frame)
-    guide_bot_detector.draw(frame)
+    frame = guide_bot_detector.draw(frame)
 
     cv.imshow("frame", frame)
     cv.waitKey(1)

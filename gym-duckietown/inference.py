@@ -21,10 +21,6 @@ import yaml
 
 from gym_duckietown.envs import DuckietownEnv
 
-import sys
-sys.path.insert(0, './feup-ri-assign4-model')
-from models.yolo import Model
-from models.common import DetectMultiBackend
 
 # from experiments.utils import save_img
 
@@ -101,18 +97,6 @@ key_handler = key.KeyStateHandler()
 env.unwrapped.window.push_handlers(key_handler)
 
 
-# hyp = None
-# with open("weights/hyp.yaml", errors='ignore') as f:
-#     hyp = yaml.safe_load(f)  # load hyps dict
-
-# ckpt = torch.load("weights/best.pt", map_location='cpu')  # load checkpoint to CPU to avoid CUDA memory leak
-# model = Model(ckpt['model'].yaml, ch=3, nc=2, anchors=hyp.get('anchors'))  # create
-# model.eval()
-model = DetectMultiBackend("weights/best.pt")
-model.warmup(imgsz=(1, 3, 256, 256))
-
-dist_queue = deque(maxlen=3)
-rot_queue = deque(maxlen=3)
 
 previous_distance = 2
 
