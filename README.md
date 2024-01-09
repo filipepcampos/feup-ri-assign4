@@ -17,10 +17,11 @@ Pre-requisites
 - git & git-lfs
 
 
-If the duckietown_world is missing (due to size constraints in moodle), just reset git using:
+If the duckietown_world is missing (due to size constraints in moodle), please clone the entire repository from:
 ```
-git reset --hard origin/main 
+git clone git@github.com:filipepcampos/feup-ri-assign3.git
 ```
+Otherwise some key features will not work properly (ArUco markers on back of vehicles and modified maps)
 
 
 Obtain lfs files
