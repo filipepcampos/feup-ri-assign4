@@ -84,21 +84,10 @@ class EdgeDetector:
             (mask_white, mask_yellow, mask_red)
         )
 
-        #   cv.imshow("mask_white", mask_white)
-        #   cv.imshow("mask_yellow", mask_yellow)
-        #   cv.imshow("mask_red", mask_red)
-
         # Get lanes by detecting edges
         edges_white, edges_yellow, edges_red = self.detect_edges(
             (mask_white, mask_yellow, mask_red)
         )
-
-        #   cv.imshow("edges_white", edges_white)
-
-        #   cv.imwrite("edges_yellow.png", edges_yellow)
-        #   cv.imwrite("mask_yellow.png", mask_yellow)
-
-        #   cv.imshow("edges_red", edges_red)
 
         # make half of the edges_white image black
         edges_white[:, 0 : edges_white.shape[1] // 3] = 0
@@ -112,7 +101,6 @@ class EdgeDetector:
         LOWER_COLOR_DUCKIEBOT = np.array([0, 230, 60])
         UPPER_COLOR_DUCKIEBOT = np.array([10, 255, 150])
         mask_duckiebot = cv.inRange(frame, LOWER_COLOR_DUCKIEBOT, UPPER_COLOR_DUCKIEBOT)
-        cv.imshow("mask_duckiebot", mask_duckiebot)
 
         mask_yellow = cv.erode(mask_yellow, self.erode_kernel, iterations=3)
         ret, markers = cv.connectedComponents(mask_yellow)
@@ -146,17 +134,11 @@ class EdgeDetector:
             yellow_lines.append([points[i][1], points[i][0], points[i+1][1], points[i+1][0]])
         yellow_lines = np.array(yellow_lines)
 
-        cv.imshow("mask_yellow", mask_yellow)
-
         if (
             white_lines is not None
             and len(self.remove_horizontal_lines(white_lines)) > 0
         ):
             white_lines = [self.remove_horizontal_lines(white_lines)]
-        # if white_lines is not None:
-        #     print("First White Lines", white_lines)
-        #     print(white_lines[0])
-        #     white_lines = self.remove_horizontal_lines(white_lines)
         if red_lines is not None:
             red_lines = self.get_horizontal_lines(red_lines)
 
@@ -175,8 +157,5 @@ class EdgeDetector:
             # red_line = self.get_average_line(red_lines)
             red_line = red_lines[0]
             self.draw_line(frame, red_line, (0, 255, 0))
-
-        print("white_line", white_line, type(white_line))
-        print("yellow_line", yellow_line, type(yellow_line))
 
         return white_line, yellow_line, red_line

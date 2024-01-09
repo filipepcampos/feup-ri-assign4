@@ -20,8 +20,8 @@ from enum import Enum
 from gym_duckietown.envs import DuckietownEnv
 # from experiments.utils import save_img
 
-from edge_detector import EdgeDetector
 from lib.movement_controller import ArucoMovementController
+from lib.edge_detector import EdgeDetector
 from lib.guide_detect import ArUcoBotDetector, YOLOBotDetector
 
 parser = argparse.ArgumentParser()
@@ -45,6 +45,7 @@ parser.add_argument(
     "--frame-skip", default=1, type=int, help="number of frames to skip"
 )
 parser.add_argument("--seed", default=1, type=int, help="seed")
+parser.add_argument("--method", default="aruco", type=str, help="method to use for guide detection")
 args = parser.parse_args()
 
 if args.env_name and args.env_name.find("Duckietown") != -1:
@@ -100,8 +101,10 @@ env.unwrapped.window.push_handlers(key_handler)
 
 
 edge_detector = EdgeDetector()
-#guide_bot_detector = ArUcoBotDetector()
-guide_bot_detector = YOLOBotDetector()
+if args.method == "aruco":
+    guide_bot_detector = ArUcoBotDetector()
+else:
+    guide_bot_detector = YOLOBotDetector()
 movement_controller = ArucoMovementController(guide_bot_detector=guide_bot_detector)
 
 white_line_history = deque(maxlen=4)
