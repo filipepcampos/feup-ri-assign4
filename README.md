@@ -15,6 +15,13 @@ Pre-requisites
 - conda
 - git & git-lfs
 
+
+If the duckietown_world is missing (due to size constraints in moodle), just reset git using:
+```
+git reset --hard origin/main 
+```
+
+
 Obtain lfs files
 ```
 git lfs pull
