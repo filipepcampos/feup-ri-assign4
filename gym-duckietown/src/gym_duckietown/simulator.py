@@ -159,7 +159,7 @@ MIN_SPAWN_OBJ_DIST = 0.25
 # self.road_tile_size = 0.61
 
 # Maximum forward robot speed in meters/second
-DEFAULT_ROBOT_SPEED = 1.20
+DEFAULT_ROBOT_SPEED = 0.05
 # approx 2 tiles/second
 
 DEFAULT_FRAMERATE = 30
@@ -1814,7 +1814,9 @@ class Simulator(gym.Env):
 
         d = self._compute_done_reward()
         misc["Simulator"]["msg"] = d.done_why
-
+        print("ROBOT SPEED: %s" % self.robot_speed)
+        print("SEED VALUE: %s" % self.seed_value)
+        
         return obs, d.reward, d.done, misc
 
     def _compute_done_reward(self) -> DoneRewardInfo:
