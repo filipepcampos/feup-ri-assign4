@@ -1,6 +1,7 @@
 # DuckieBot Follower
 
 Authored by: António Ribeiro, Filipe Campos and Francisco Cerqueira
+
 Project for the Intelligent Robotics course of M.EIC at FEUP, 2023/2024
 
 ## Structure
